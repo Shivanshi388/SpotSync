@@ -64,6 +64,7 @@ def set_demo_settings(monkeypatch, *, mode="mock", env="development", allowed=Tr
             app_env=env,
             allow_mock_payments=allowed,
         ),
+        raising=False,
     )
 
 
@@ -134,4 +135,5 @@ def test_unpaid_booking_can_be_cancelled_without_refund(monkeypatch):
     assert result.status == "cancelled"
     assert simulated is False
     assert db.commits == 1
+
 
