@@ -149,6 +149,16 @@ function Navbar() {
             Find Parking
           </button>
 
+          {isLoggedIn && (
+            <button
+              type="button"
+              className={path === '/availability' ? 'active' : ''}
+              onClick={() => handleNavigation('/availability')}
+            >
+              Live Availability
+            </button>
+          )}
+
           <button
             type="button"
             className={path === '/' && window.location.hash === '#how-it-works' ? 'active' : ''}

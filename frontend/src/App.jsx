@@ -11,6 +11,7 @@ import Register from './pages/Register'
 import Help from './pages/Help'
 import AdminDashboard from './pages/AdminDashboard'
 import MyBookings from './pages/MyBookings'
+import LiveAvailability from './pages/LiveAvailability'
 
 function App() {
   function navigate(path) {
@@ -39,6 +40,7 @@ function App() {
     '/parking',
     '/parking-details',
     '/booking',
+    '/availability',
     '/payment',
     '/booking-confirmation',
     '/bookings',
@@ -63,6 +65,8 @@ function App() {
     page = <BookingConfirmation />
   } else if (path === '/bookings') {
     page = <MyBookings />
+  } else if (path === '/availability') {
+    page = <LiveAvailability />
   } else if (path === '/login') {
     page = <Login />
   } else if (path === '/register') {
