@@ -5,6 +5,8 @@ class ParkingOverviewItem(BaseModel):
     id: int
     name: str
     address: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
     total_slots: int
     occupied_slots: int
     available_slots: int

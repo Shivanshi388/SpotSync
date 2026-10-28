@@ -1,0 +1,10 @@
+-- SpotSync database initialization guide (PostgreSQL).
+-- Run from the repository root using psql:
+--   psql "$env:DATABASE_URL" -v ON_ERROR_STOP=1 -f database/schema.sql
+--   psql "$env:DATABASE_URL" -v ON_ERROR_STOP=1 -f database/seed.sql
+--   psql "$env:DATABASE_URL" -v ON_ERROR_STOP=1 -f database/functions.sql
+--   psql "$env:DATABASE_URL" -v ON_ERROR_STOP=1 -f database/indexes.sql
+-- For an existing database, take a backup and apply
+-- database/migrations/20261029_core_booking_payment_fixes.sql instead of
+-- recreating schema.sql. Inspect and resolve overlapping active reservations
+-- before applying the exclusion constraint.

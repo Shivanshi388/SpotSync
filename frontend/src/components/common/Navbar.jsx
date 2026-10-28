@@ -1,4 +1,4 @@
-﻿import { MapPin, Menu, X, UserRound } from 'lucide-react'
+import { MapPin, Menu, X, UserRound } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
 

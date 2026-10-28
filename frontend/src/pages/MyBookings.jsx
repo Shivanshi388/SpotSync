@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CalendarCheck,
   Car,
@@ -7,7 +7,8 @@ import {
   Settings,
   User,
 } from 'lucide-react'
-import { cancelBooking, getBookings, getStatus } from '../utils/bookingStore'
+import { cancelServerBooking, listBookings } from '../services/bookingService'
+import { getParkingOverview, getParkingSlots } from '../services/parkingService'
 import '../styles/mybookings-purple.css'
 
 const TABS = [
@@ -27,6 +28,7 @@ function logout() {
   localStorage.removeItem('spotsync_logged_in')
   localStorage.removeItem('spotsync_token')
   localStorage.removeItem('spotsync_user_name')
+  localStorage.removeItem('spotsync_user_role')
   go('/login')
 }
 
@@ -47,13 +49,63 @@ function whenText(booking) {
   return `${day}, ${clock(booking.startsAt)} - ${clock(booking.endsAt)}`
 }
 
+function statusFor(booking, now = Date.now()) {
+  if (booking.serverStatus === 'cancelled') return 'cancelled'
+  if (booking.serverStatus === 'completed' || booking.endsAt <= now) return 'completed'
+  return 'upcoming'
+}
+
 export default function MyBookings() {
-  const [bookings, setBookings] = useState(getBookings)
+  const [bookings, setBookings] = useState([])
   const [tab, setTab] = useState('all')
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [cancellingId, setCancellingId] = useState(null)
   const userName = localStorage.getItem('spotsync_user_name') || ''
 
+  const refresh = useCallback(async () => {
+    setLoading(true)
+    setLoadError('')
+    try {
+      const [bookingResult, overviewResult, slotsResult] = await Promise.allSettled([
+        listBookings(),
+        getParkingOverview(),
+        getParkingSlots({ availableOnly: false }),
+      ])
+      if (bookingResult.status !== 'fulfilled') throw bookingResult.reason
+
+      const lots = overviewResult.status === 'fulfilled' ? (overviewResult.value?.parking_lots ?? []) : []
+      const slots = slotsResult.status === 'fulfilled' ? (slotsResult.value?.slots ?? []) : []
+      const slotMap = new Map(slots.map((item) => [Number(item.id), item]))
+      const lotMap = new Map(lots.map((item) => [Number(item.id), item]))
+      const mapped = (bookingResult.value ?? []).map((item) => {
+        const slotItem = slotMap.get(Number(item.parking_slot_id))
+        const lot = slotItem ? lotMap.get(Number(slotItem.parking_lot_id)) : null
+        const startsAt = new Date(item.start_time).getTime()
+        const endsAt = new Date(item.end_time).getTime()
+        return {
+          id: item.id,
+          parking: lot?.name || 'Parking location',
+          slot: slotItem?.slot_number || `Slot ${item.parking_slot_id}`,
+          total: Number(item.total_amount || 0),
+          duration: Math.round((endsAt - startsAt) / 3600000),
+          startsAt,
+          endsAt,
+          serverStatus: item.status,
+        }
+      })
+      setBookings(mapped)
+    } catch (error) {
+      setLoadError(error.response?.data?.detail || error.message || 'Could not load your bookings from SpotSync.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { refresh() }, [refresh])
+
   const withStatus = useMemo(
-    () => bookings.map((item) => ({ ...item, status: getStatus(item) })),
+    () => bookings.map((item) => ({ ...item, status: statusFor(item) })),
     [bookings]
   )
 
@@ -71,10 +123,18 @@ export default function MyBookings() {
     .filter((item) => tab === 'all' || item.status === tab)
     .sort((a, b) => b.startsAt - a.startsAt)
 
-  function handleCancel(id) {
-    if (!window.confirm('Cancel this booking?')) return
-    cancelBooking(id)
-    setBookings(getBookings())
+  async function handleCancel(id) {
+    if (!window.confirm('DEMO ONLY: Cancel this booking? Any mock payment will be marked as refunded for demonstration. No real payment or refund will occur.')) return
+    setCancellingId(id)
+    try {
+      const result = await cancelServerBooking(id)
+      await refresh()
+      window.alert(result?.message || 'Demo cancellation completed. No real payment or refund occurred.')
+    } catch (error) {
+      window.alert(error.response?.data?.detail || error.message || 'Could not cancel this booking.')
+    } finally {
+      setCancellingId(null)
+    }
   }
 
   return (
@@ -130,11 +190,11 @@ export default function MyBookings() {
           {shown.length === 0 ? (
             <div className="mb-empty">
               <CalendarCheck size={34} />
-              <h3>{bookings.length === 0 ? 'No bookings yet' : 'Nothing in this tab'}</h3>
+              <h3>{loading ? 'Loading bookings...' : loadError ? 'Could not load bookings' : bookings.length === 0 ? 'No bookings yet' : 'Nothing in this tab'}</h3>
               <p>
-                {bookings.length === 0
+                {loadError || (bookings.length === 0
                   ? 'Book a parking spot and it will show up here.'
-                  : 'Try another tab.'}
+                  : 'Try another tab.')}
               </p>
               <button type="button" className="mb-primary" onClick={() => go('/parking')}>
                 Find Parking
@@ -165,7 +225,7 @@ export default function MyBookings() {
                       <button
                         type="button"
                         className="mb-cancel"
-                        onClick={() => handleCancel(item.id)}
+                        onClick={() => handleCancel(item.id)} disabled={cancellingId === item.id}
                       >
                         Cancel
                       </button>

@@ -24,4 +24,6 @@ export async function getCurrentUser() {
 export function logoutUser() {
   localStorage.removeItem('spotsync_token')
   localStorage.removeItem('spotsync_logged_in')
+  localStorage.removeItem('spotsync_user_role')
+  localStorage.removeItem('spotsync_user_role')
 }

@@ -8,7 +8,7 @@ from app.models.user import User
 
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="/auth/login"
+    tokenUrl="/api/auth/login"
 )
 
 
@@ -34,8 +34,8 @@ def get_current_user(
 
         user = db.get(User, int(user_id))
 
-        if user is None:
-            raise ValueError("User not found")
+        if user is None or not user.is_active:
+            raise ValueError("User not found or inactive")
 
         return user
 

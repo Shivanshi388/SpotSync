@@ -24,3 +24,9 @@ class BookingResponse(BaseModel):
     total_amount: Decimal
     created_at: datetime
     updated_at: datetime
+
+
+class BookingCancellationResponse(BookingResponse):
+    demo_mode: bool = False
+    demo_refund_simulated: bool = False
+    message: str

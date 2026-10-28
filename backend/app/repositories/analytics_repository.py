@@ -84,7 +84,7 @@ def get_revenue_statistics(db: Session, parking_lot_id: int):
         )
         .where(
             ParkingSlot.parking_lot_id == parking_lot_id,
-            Payment.status.in_(["paid", "refunded"]),
+            Payment.status.in_(["paid", "partially_refunded", "refunded"]),
         )
     )
 

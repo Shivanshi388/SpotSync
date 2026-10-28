@@ -1,10 +1,12 @@
-﻿from datetime import datetime, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.models.booking import Booking
+from app.models.payment import Payment
 from app.repositories.booking_repository import (
     create_booking,
     get_booking_by_id,
@@ -25,17 +27,21 @@ def create_user_booking(
     start_time,
     end_time,
 ):
-    if start_time >= end_time:
+    normalized_start = (
+        start_time.replace(tzinfo=timezone.utc)
+        if start_time.tzinfo is None else start_time
+    )
+    normalized_end = (
+        end_time.replace(tzinfo=timezone.utc)
+        if end_time.tzinfo is None else end_time
+    )
+    if normalized_start >= normalized_end:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="End time must be after start time",
         )
 
     now = datetime.now(timezone.utc)
-    normalized_start = start_time
-    if start_time.tzinfo is None:
-        normalized_start = start_time.replace(tzinfo=timezone.utc)
-
     if normalized_start < now:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -73,8 +79,8 @@ def create_user_booking(
     overlapping_booking = get_overlapping_booking(
         db,
         parking_slot_id,
-        start_time,
-        end_time,
+        normalized_start,
+        normalized_end,
     )
 
     if overlapping_booking:
@@ -84,22 +90,43 @@ def create_user_booking(
         )
 
     duration_hours = Decimal(
-        str((end_time - start_time).total_seconds() / 3600)
+        str((normalized_end - normalized_start).total_seconds() / 3600)
     )
-
-    total_amount = duration_hours * Decimal("50.00")
+    # Match the booking screen's existing price options (parking fee + ₹10 service fee).
+    # The server remains authoritative; clients cannot choose an amount in the request.
+    parking_rates = {
+        Decimal("2"): Decimal("60.00"),
+        Decimal("4"): Decimal("120.00"),
+        Decimal("24"): Decimal("250.00"),
+    }
+    whole_hours = duration_hours.quantize(Decimal("1"))
+    if duration_hours != whole_hours or duration_hours <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Booking duration must be a positive whole number of hours",
+        )
+    parking_fee = parking_rates.get(whole_hours, whole_hours * Decimal("30.00"))
+    service_fee = Decimal("10.00")
+    total_amount = parking_fee + service_fee
 
     booking = create_booking(
         db=db,
         user_id=user_id,
         vehicle_id=vehicle_id,
         parking_slot_id=parking_slot_id,
-        start_time=start_time,
-        end_time=end_time,
+        start_time=normalized_start,
+        end_time=normalized_end,
         total_amount=total_amount,
     )
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This slot conflicts with another reservation. Please choose another time or slot.",
+        ) from exc
     db.refresh(booking)
 
     return booking
@@ -139,6 +166,20 @@ def cancel_user_booking(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Booking cannot be cancelled",
+        )
+
+    captured_payment = (
+        db.query(Payment)
+        .filter(
+            Payment.booking_id == booking.id,
+            Payment.status.in_(["paid", "partially_refunded", "refunded"]),
+        )
+        .first()
+    )
+    if captured_payment is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This booking has a captured payment. Use the refund workflow before cancellation.",
         )
 
     booking = update_booking_status(
