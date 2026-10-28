@@ -1,10 +1,11 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
+from app.core.config import settings
 from app.models.booking import Booking
 from app.models.payment import Payment
 from app.repositories.booking_repository import (
@@ -92,8 +93,7 @@ def create_user_booking(
     duration_hours = Decimal(
         str((normalized_end - normalized_start).total_seconds() / 3600)
     )
-    # Match the booking screen's existing price options (parking fee + ₹10 service fee).
-    # The server remains authoritative; clients cannot choose an amount in the request.
+    # Match the existing booking UI options; amounts are still calculated server-side.
     parking_rates = {
         Decimal("2"): Decimal("60.00"),
         Decimal("4"): Decimal("120.00"),
@@ -106,8 +106,7 @@ def create_user_booking(
             detail="Booking duration must be a positive whole number of hours",
         )
     parking_fee = parking_rates.get(whole_hours, whole_hours * Decimal("30.00"))
-    service_fee = Decimal("10.00")
-    total_amount = parking_fee + service_fee
+    total_amount = parking_fee + Decimal("10.00")
 
     booking = create_booking(
         db=db,
@@ -160,6 +159,7 @@ def cancel_user_booking(
     booking_id: int,
     user_id: int,
 ):
+    """Cancel a booking; simulate refunds only for eligible mock payments."""
     booking = get_booking_for_user(db, booking_id, user_id)
 
     if booking.status in ["cancelled", "completed"]:
@@ -172,24 +172,46 @@ def cancel_user_booking(
         db.query(Payment)
         .filter(
             Payment.booking_id == booking.id,
-            Payment.status.in_(["paid", "partially_refunded", "refunded"]),
+            Payment.status.in_(["paid", "partially_refunded"]),
         )
+        .order_by(Payment.id.desc())
         .first()
     )
+
+    demo_refund_simulated = False
+
     if captured_payment is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="This booking has a captured payment. Use the refund workflow before cancellation.",
+        is_allowed_local_demo = (
+            settings.payment_mode.strip().lower() == "mock"
+            and settings.app_env.strip().lower() == "development"
+            and settings.allow_mock_payments
+            and (captured_payment.razorpay_order_id or "").startswith("mock_order_")
+            and (captured_payment.razorpay_payment_id or "").startswith("mock_payment_")
         )
 
-    booking = update_booking_status(
-        db,
-        booking,
-        "cancelled",
-    )
+        if not is_allowed_local_demo:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "This booking has a real or non-demo captured payment. "
+                    "No cancellation or refund was performed; use the authorized refund process."
+                ),
+            )
 
-    db.commit()
+        captured_payment.status = "refunded"
+        demo_refund_simulated = True
+
+    booking = update_booking_status(db, booking, "cancelled")
+
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Booking could not be cancelled because of a database conflict",
+        ) from exc
+
     db.refresh(booking)
-
-    return booking
+    return booking, demo_refund_simulated
 
