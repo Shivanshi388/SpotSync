@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 import razorpay
 from sqlalchemy.orm import Session
@@ -8,6 +8,17 @@ from app.models.payment import Payment
 from app.models.refund import Refund
 
 
+def _assert_mock_payments_allowed() -> None:
+    if (
+        settings.app_env.strip().lower() != "development"
+        or not settings.allow_mock_payments
+    ):
+        raise ValueError(
+            "Mock refunds are disabled. For local development only, set "
+            "APP_ENV=development and ALLOW_MOCK_PAYMENTS=true."
+        )
+
+
 def create_refund(
     db: Session,
     payment_id: int,
@@ -15,8 +26,14 @@ def create_refund(
     amount: Decimal,
     reason: str | None = None,
 ):
-    payment = db.get(Payment, payment_id)
-
+    # Lock the payment row so concurrent refund requests reserve the balance serially.
+    amount = Decimal(str(amount)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    payment = (
+        db.query(Payment)
+        .filter(Payment.id == payment_id)
+        .with_for_update()
+        .first()
+    )
     if not payment:
         raise ValueError("Payment not found")
     if payment.user_id != user_id:
@@ -28,28 +45,29 @@ def create_refund(
     if not payment.razorpay_payment_id:
         raise ValueError("Payment has no provider payment ID")
 
-    previous_refunds = (
-        db.query(Refund)
-        .filter(Refund.payment_id == payment.id)
-        .all()
-    )
+    mode = settings.payment_mode.strip().lower()
+    if mode == "mock":
+        _assert_mock_payments_allowed()
+    elif mode != "razorpay":
+        raise ValueError("Invalid payment mode configuration")
 
-    # Only provider-confirmed refunds count against the refundable balance.
-    already_refunded = sum(
-        (refund.amount for refund in previous_refunds
-         if refund.status == "processed"),
+    previous_refunds = (
+        db.query(Refund).filter(Refund.payment_id == payment.id).all()
+    )
+    # Reserve pending refunds too, so parallel/repeated requests cannot exceed
+    # the payment amount. Simulated refunds are for local testing only.
+    reserved_statuses = {"pending", "processed", "simulated"}
+    already_reserved = sum(
+        (refund.amount for refund in previous_refunds if refund.status in reserved_statuses),
         Decimal("0"),
     )
-
-    if already_refunded + amount > payment.amount:
+    if already_reserved + amount > payment.amount:
         raise ValueError("Refund amount exceeds remaining payment amount")
-
-    mode = settings.payment_mode.lower()
 
     if mode == "mock":
         refund_id = f"mock_refund_{payment.id}_{len(previous_refunds) + 1}"
-        refund_status = "mock"
-    elif mode == "razorpay":
+        refund_status = "simulated"
+    else:
         try:
             client = razorpay.Client(
                 auth=(settings.razorpay_key_id, settings.razorpay_key_secret)
@@ -57,21 +75,12 @@ def create_refund(
             payload = {"amount": int(amount * 100)}
             if reason:
                 payload["notes"] = {"reason": reason[:256]}
-
-            provider_refund = client.payment.refund(
-                payment.razorpay_payment_id,
-                payload,
-            )
+            provider_refund = client.payment.refund(payment.razorpay_payment_id, payload)
             refund_id = provider_refund["id"]
             provider_status = provider_refund.get("status", "pending")
-            refund_status = (
-                "processed" if provider_status == "processed"
-                else "pending"
-            )
+            refund_status = "processed" if provider_status == "processed" else "pending"
         except Exception as exc:
             raise ValueError("Razorpay refund request failed") from exc
-    else:
-        raise ValueError("Invalid payment mode configuration")
 
     refund = Refund(
         payment_id=payment.id,
@@ -82,10 +91,12 @@ def create_refund(
     )
     db.add(refund)
 
-    if refund_status == "processed" and already_refunded + amount == payment.amount:
-        payment.status = "refunded"
-    elif refund_status == "processed":
-        payment.status = "partially_refunded"
+    if refund_status == "processed":
+        processed_total = sum(
+            (item.amount for item in previous_refunds if item.status == "processed"),
+            Decimal("0"),
+        ) + amount
+        payment.status = "refunded" if processed_total == payment.amount else "partially_refunded"
 
     db.commit()
     db.refresh(refund)

@@ -2,8 +2,13 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
+from app.core.config import settings
 from app.core.database import get_db
-from app.schemas.booking import BookingCreate, BookingResponse
+from app.schemas.booking import (
+    BookingCancellationResponse,
+    BookingCreate,
+    BookingResponse,
+)
 from app.services.booking_service import (
     cancel_user_booking,
     create_user_booking,
@@ -45,10 +50,7 @@ def list_bookings(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return list_user_bookings(
-        db=db,
-        user_id=current_user.id,
-    )
+    return list_user_bookings(db=db, user_id=current_user.id)
 
 
 @router.get(
@@ -60,24 +62,42 @@ def get_booking(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return get_booking_for_user(
-        db=db,
-        booking_id=booking_id,
-        user_id=current_user.id,
-    )
+    return get_booking_for_user(db=db, booking_id=booking_id, user_id=current_user.id)
 
 
 @router.patch(
     "/{booking_id}/cancel",
-    response_model=BookingResponse,
+    response_model=BookingCancellationResponse,
 )
 def cancel_booking(
     booking_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return cancel_user_booking(
+    booking, demo_refund_simulated = cancel_user_booking(
         db=db,
         booking_id=booking_id,
         user_id=current_user.id,
     )
+    demo_mode = (
+        settings.payment_mode.strip().lower() == "mock"
+        and settings.app_env.strip().lower() == "development"
+        and settings.allow_mock_payments
+    )
+    if demo_refund_simulated:
+        message = (
+            "Demo cancellation completed. The mock payment was marked as refunded "
+            "for demonstration only; no real payment or refund occurred."
+        )
+    elif demo_mode:
+        message = "Demo cancellation completed. No real payment or refund occurred."
+    else:
+        message = "Booking cancelled."
+
+    response = BookingResponse.model_validate(booking).model_dump()
+    response.update(
+        demo_mode=demo_mode,
+        demo_refund_simulated=demo_refund_simulated,
+        message=message,
+    )
+    return response

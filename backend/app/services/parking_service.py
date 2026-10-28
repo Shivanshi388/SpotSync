@@ -25,6 +25,8 @@ class ParkingService:
                     "id": parking_lot.id,
                     "name": parking_lot.name,
                     "address": getattr(parking_lot, "address", None),
+                    "latitude": float(parking_lot.latitude) if parking_lot.latitude is not None else None,
+                    "longitude": float(parking_lot.longitude) if parking_lot.longitude is not None else None,
                     "total_slots": occupancy["total_slots"],
                     "occupied_slots": occupancy["occupied_slots"],
                     "available_slots": occupancy["available_slots"],

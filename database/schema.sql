@@ -2,6 +2,10 @@
 -- Owner: Vanshika
 -- PostgreSQL
 
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
 -- ============================================================
 -- USERS
 -- ============================================================
@@ -133,6 +137,23 @@ CREATE TABLE bookings (
 );
 
 
+-- Prevent concurrent overlapping active reservations for one slot.
+-- Also supplied in functions.sql and the existing-database migration.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'no_overlapping_active_bookings'
+    ) THEN
+        ALTER TABLE bookings
+        ADD CONSTRAINT no_overlapping_active_bookings
+        EXCLUDE USING gist (
+            parking_slot_id WITH =,
+            tstzrange(start_time, end_time, '[)') WITH &&
+        ) WHERE (status IN ('pending', 'confirmed'));
+    END IF;
+END;
+$$;
+
 -- ============================================================
 -- PAYMENTS
 -- ============================================================
@@ -160,6 +181,7 @@ CREATE TABLE payments (
                 'pending',
                 'paid',
                 'failed',
+                'partially_refunded',
                 'refunded'
             )
         ),
@@ -192,7 +214,8 @@ CREATE TABLE refunds (
             status IN (
                 'pending',
                 'processed',
-                'failed'
+                'failed',
+                'simulated'
             )
         ),
 

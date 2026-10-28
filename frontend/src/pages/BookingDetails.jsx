@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
   Car,
@@ -10,6 +10,8 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { getParkingOverview } from '../services/parkingService'
+import { createBooking } from '../services/bookingService'
+import { createVehicle, listVehicles } from '../services/vehicleService'
 import '../styles/booking-purple.css'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -42,6 +44,8 @@ function startOfToday() {
 
 export default function BookingDetails() {
   const params = useMemo(() => new URLSearchParams(window.location.search), [])
+  const parkingId = Number(params.get('parkingId'))
+  const slotId = Number(params.get('slotId'))
   const slot = params.get('slot') || 'A01'
   const parkingName = params.get('parking') || 'City Center Parking'
 
@@ -59,37 +63,52 @@ export default function BookingDetails() {
   const [selectedDate, setSelectedDate] = useState(today)
   const [selectedHour, setSelectedHour] = useState(null)
   const [selectedDuration, setSelectedDuration] = useState(2)
+  const [vehicles, setVehicles] = useState([])
+  const [vehicleLoadError, setVehicleLoadError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     let cancelled = false
 
-    async function loadLot() {
-      try {
-        const response = await getParkingOverview()
-        const lots = response?.parking_lots ?? []
+    async function loadBookingData() {
+      const [overviewResult, vehiclesResult] = await Promise.allSettled([
+        getParkingOverview(),
+        listVehicles(),
+      ])
+
+      if (cancelled) return
+
+      if (overviewResult.status === 'fulfilled') {
+        const lots = overviewResult.value?.parking_lots ?? []
         const match = lots.find(
-          (item) => item.name === parkingName || String(item.id) === parkingName
+          (item) => (parkingId > 0 && Number(item.id) === parkingId) ||
+            item.name === parkingName || String(item.id) === parkingName
         )
 
-        if (!match || cancelled) return
+        if (match) {
+          setLot({
+            id: match.id,
+            name: match.name || parkingName,
+            address: match.address || '',
+            available: Number(match.available_slots ?? 0),
+            total: Number(match.total_slots ?? 0),
+          })
+        }
+      } else {
+        console.error('Failed to load parking details:', overviewResult.reason)
+      }
 
-        setLot({
-          name: match.name || parkingName,
-          address: match.address || '',
-          available: Number(match.available_slots ?? 0),
-          total: Number(match.total_slots ?? 0),
-        })
-      } catch (error) {
-        console.error('Failed to load parking details:', error)
+      if (vehiclesResult.status === 'fulfilled') {
+        setVehicles(vehiclesResult.value ?? [])
+        setVehicleLoadError('')
+      } else {
+        setVehicleLoadError(vehiclesResult.reason?.response?.data?.detail || vehiclesResult.reason?.message || 'Could not load your vehicles.')
       }
     }
 
-    loadLot()
-
-    return () => {
-      cancelled = true
-    }
-  }, [parkingName])
+    loadBookingData()
+    return () => { cancelled = true }
+  }, [parkingId, parkingName])
 
   const selectedOption = durationOptions.find(
     (option) => option.value === selectedDuration
@@ -156,17 +175,59 @@ export default function BookingDetails() {
     window.history.back()
   }
 
-  function continueToPayment() {
-    if (selectedHour == null) return
+  async function continueToPayment() {
+    if (selectedHour == null || submitting) return
 
-    window.history.pushState(
-      { slot, total },
-      '',
-      `/payment?parking=${encodeURIComponent(lot.name)}&slot=${slot}&total=${total}` +
-        `&date=${dateKey(selectedDate)}&time=${pad(selectedHour)}:00&duration=${selectedDuration}`
-    )
+    if (!Number.isInteger(parkingId) || parkingId <= 0 || !Number.isInteger(slotId) || slotId <= 0) {
+      window.alert('Please return to Parking Details and select a real available slot.')
+      return
+    }
 
-    window.dispatchEvent(new PopStateEvent('popstate'))
+    if (vehicleLoadError) {
+      window.alert(vehicleLoadError)
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      let vehicleId = vehicles[0]?.id
+      if (!vehicleId) {
+        const registrationNumber = window.prompt('Enter your vehicle registration number to continue booking:')
+        if (!registrationNumber || registrationNumber.trim().length < 2) return
+        const vehicle = await createVehicle({
+          registration_number: registrationNumber.trim().toUpperCase(),
+          vehicle_type: 'Car',
+        })
+        vehicleId = vehicle.id
+        setVehicles([vehicle])
+      }
+
+      const start = new Date(
+        selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), selectedHour, 0, 0, 0
+      )
+      const end = new Date(start.getTime() + selectedDuration * 60 * 60 * 1000)
+      const booking = await createBooking({
+        vehicle_id: Number(vehicleId),
+        parking_slot_id: slotId,
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+      })
+
+      const query = new URLSearchParams({
+        bookingId: String(booking.id),
+        parking: lot.name,
+        slot,
+        date: dateKey(selectedDate),
+        time: `${pad(selectedHour)}:00`,
+        duration: String(selectedDuration),
+      })
+      window.history.pushState({ bookingId: booking.id }, '', `/payment?${query.toString()}`)
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    } catch (error) {
+      window.alert(error.response?.data?.detail || error.message || 'Could not create your booking. Please refresh availability and try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -323,7 +384,7 @@ export default function BookingDetails() {
           <button
             type="button"
             className="bk-next"
-            disabled={selectedHour == null}
+            disabled={selectedHour == null || submitting}
             onClick={continueToPayment}
           >
             {selectedHour == null ? 'Select a time' : 'Next'}
