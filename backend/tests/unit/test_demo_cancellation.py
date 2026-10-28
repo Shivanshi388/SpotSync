@@ -1,4 +1,4 @@
-from types import SimpleNamespace
+﻿from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
@@ -56,9 +56,15 @@ def make_payment(*, order_id="mock_order_71_test", payment_id="mock_payment_test
 
 
 def set_demo_settings(monkeypatch, *, mode="mock", env="development", allowed=True):
-    monkeypatch.setattr(booking_service.settings, "payment_mode", mode)
-    monkeypatch.setattr(booking_service.settings, "app_env", env)
-    monkeypatch.setattr(booking_service.settings, "allow_mock_payments", allowed)
+    monkeypatch.setattr(
+        booking_service,
+        "settings",
+        SimpleNamespace(
+            payment_mode=mode,
+            app_env=env,
+            allow_mock_payments=allowed,
+        ),
+    )
 
 
 def patch_booking(monkeypatch, booking):
@@ -128,3 +134,4 @@ def test_unpaid_booking_can_be_cancelled_without_refund(monkeypatch):
     assert result.status == "cancelled"
     assert simulated is False
     assert db.commits == 1
+
