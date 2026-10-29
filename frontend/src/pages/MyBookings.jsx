@@ -154,13 +154,13 @@ export default function MyBookings() {
           <button type="button" className="active">
             <CalendarCheck size={17} /> My Bookings
           </button>
-          <button type="button" disabled title="Coming soon">
+          <button type="button" onClick={() => go('/vehicles')}>
             <Car size={17} /> My Vehicles
           </button>
-          <button type="button" disabled title="Coming soon">
+          <button type="button" onClick={() => go('/profile')}>
             <User size={17} /> Profile
           </button>
-          <button type="button" disabled title="Coming soon">
+          <button type="button" onClick={() => go('/settings')}>
             <Settings size={17} /> Settings
           </button>
         </nav>

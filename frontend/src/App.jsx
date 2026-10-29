@@ -12,6 +12,9 @@ import Help from './pages/Help'
 import AdminDashboard from './pages/AdminDashboard'
 import MyBookings from './pages/MyBookings'
 import LiveAvailability from './pages/LiveAvailability'
+import VehicleManagement from './pages/VehicleManagement'
+import Profile from './pages/Profile'
+import Settings from './pages/Settings'
 
 function App() {
   function navigate(path) {
@@ -44,6 +47,9 @@ function App() {
     '/payment',
     '/booking-confirmation',
     '/bookings',
+    '/vehicles',
+    '/profile',
+    '/settings',
     '/booking-confirmation',
   ]
 
@@ -65,6 +71,12 @@ function App() {
     page = <BookingConfirmation />
   } else if (path === '/bookings') {
     page = <MyBookings />
+  } else if (path === '/vehicles') {
+    page = <VehicleManagement />
+  } else if (path === '/profile') {
+    page = <Profile />
+  } else if (path === '/settings') {
+    page = <Settings />
   } else if (path === '/availability') {
     page = <LiveAvailability />
   } else if (path === '/login') {
