@@ -126,21 +126,12 @@ function Navbar() {
         <nav className={`nav-links ${menuOpen ? 'open' : ''}`}>
           <button
             type="button"
-            className={path === '/home' ? 'active' : ''}
+            className={path === '/home' || path === '/' ? 'active' : ''}
             onClick={() => handleHome('#home')}
           >
             Home
           </button>
-                    {isLoggedIn && (
-            <button
-              type="button"
-              className={path === '/bookings' ? 'active' : ''}
-              onClick={() => handleNavigation('/bookings')}
-            >
-              My Bookings
-            </button>
-          )}
-          
+
           <button
             type="button"
             className={path === '/parking' ? 'active' : ''}
@@ -149,19 +140,25 @@ function Navbar() {
             Find Parking
           </button>
 
-          {isLoggedIn && (
-            <button
-              type="button"
-              className={path === '/availability' ? 'active' : ''}
-              onClick={() => handleNavigation('/availability')}
-            >
-              Live Availability
-            </button>
-          )}
+          <button
+            type="button"
+            className={path === '/bookings' ? 'active' : ''}
+            onClick={() => handleNavigation('/bookings')}
+          >
+            My Bookings
+          </button>
 
           <button
             type="button"
-            className={path === '/' && window.location.hash === '#how-it-works' ? 'active' : ''}
+            className={path === '/availability' ? 'active' : ''}
+            onClick={() => handleNavigation('/availability')}
+          >
+            Live Availability
+          </button>
+
+          <button
+            type="button"
+            className={window.location.hash === '#how-it-works' ? 'active' : ''}
             onClick={() => handleHome('#how-it-works')}
           >
             How It Works

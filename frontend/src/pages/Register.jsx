@@ -124,9 +124,11 @@ export default function Register() {
             <input
               type="password"
               name="password"
+              minLength={8}
+              autoComplete="new-password"
               value={form.password}
               onChange={updateField}
-              placeholder="Create a password"
+              placeholder="At least 8 characters"
               required
             />
           </label>
