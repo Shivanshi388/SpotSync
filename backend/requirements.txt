@@ -1,3 +1,4 @@
+
 fastapi
 uvicorn[standard]
 sqlalchemy
@@ -8,10 +9,21 @@ python-dotenv==1.2.1
 PyJWT==2.15.1
 pwdlib[argon2]==0.3.1
 razorpay
+
+# Testing dependencies
+pytest
+
+# IoT and MQTT
 paho-mqtt
+
+# Machine learning
 scikit-learn
 joblib
 numpy
+
+# Scheduling
 apscheduler
-pytest
+
+# Email validation
 email-validator>=2.0.0
+
