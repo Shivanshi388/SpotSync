@@ -7,6 +7,7 @@ import BookingDetails from './pages/BookingDetails'
 import Payment from './pages/Payment'
 import BookingConfirmation from './pages/BookingConfirmation'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
 import Register from './pages/Register'
 import Help from './pages/Help'
 import AdminDashboard from './pages/AdminDashboard'
@@ -79,6 +80,8 @@ function App() {
     page = <Settings />
   } else if (path === '/availability') {
     page = <LiveAvailability />
+  } else if (path === '/forgot-password') {
+    page = <ForgotPassword />
   } else if (path === '/login') {
     page = <Login />
   } else if (path === '/register') {

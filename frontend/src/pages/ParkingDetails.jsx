@@ -15,29 +15,10 @@ import {
   Star,
   Zap,
 } from 'lucide-react'
-import { getParkingOverview } from '../services/parkingService'
+import { getParkingOverview, getParkingSlots } from '../services/parkingService'
 import '../styles/details-purple.css'
 
-const slots = [
-  { id: 'A01', status: 'available' },
-  { id: 'A02', status: 'available' },
-  { id: 'A03', status: 'occupied' },
-  { id: 'A04', status: 'available' },
-  { id: 'A05', status: 'reserved' },
-  { id: 'A06', status: 'available' },
-  { id: 'B01', status: 'available' },
-  { id: 'B02', status: 'occupied' },
-  { id: 'B03', status: 'available' },
-  { id: 'B04', status: 'available' },
-  { id: 'B05', status: 'occupied' },
-  { id: 'B06', status: 'available' },
-  { id: 'C01', status: 'available' },
-  { id: 'C02', status: 'available' },
-  { id: 'C03', status: 'reserved' },
-  { id: 'C04', status: 'available' },
-  { id: 'C05', status: 'available' },
-  { id: 'C06', status: 'occupied' },
-]
+const slots = []
 
 const FALLBACK = {
   name: 'City Center Parking',
@@ -73,7 +54,7 @@ function SlotButton({ slot, selected, onSelect }) {
       aria-label={`${slot.id} ${slot.status}`}
     >
       <Car size={17} />
-      <span>{slot.id}</span>
+      <span>{slot.label || slot.id}</span>
       {selected && (
         <span className="slot-check">
           <Check size={10} />
@@ -86,6 +67,9 @@ function SlotButton({ slot, selected, onSelect }) {
 export default function ParkingDetails() {
   const [parking, setParking] = useState(FALLBACK)
   const [selectedSlot, setSelectedSlot] = useState(null)
+  const [parkingId, setParkingId] = useState(null)
+  const [slotLoading, setSlotLoading] = useState(false)
+  const [parkingSlots, setParkingSlots] = useState([])
   const [saved, setSaved] = useState(false)
   const [tab, setTab] = useState('facilities')
   const [photo, setPhoto] = useState(0)
@@ -106,6 +90,7 @@ export default function ParkingDetails() {
 
         if (!lot || cancelled) return
 
+        setParkingId(Number(lot.id))
         setParking({
           name: lot.name || FALLBACK.name,
           address: lot.address || FALLBACK.address,
@@ -128,9 +113,51 @@ export default function ParkingDetails() {
     }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadSlots() {
+      const wanted = new URLSearchParams(window.location.search).get('parking')
+      if (!wanted) return
+
+      setSlotLoading(true)
+      try {
+        const overview = await getParkingOverview()
+        const lots = overview?.parking_lots ?? []
+        const lot = lots.find(
+          (item) => String(item.id) === wanted || item.name === wanted
+        )
+        if (!lot || cancelled) return
+
+        setParkingId(Number(lot.id))
+        const result = await getParkingSlots({
+          parkingLotId: Number(lot.id),
+          availableOnly: true,
+        })
+        if (cancelled) return
+
+        setSelectedSlot(null)
+        setParkingSlots(
+          (result?.slots ?? []).map((item) => ({
+            id: Number(item.id),
+            label: item.slot_number,
+            status: item.is_available ? 'available' : 'occupied',
+          }))
+        )
+      } catch (error) {
+        console.error('Failed to load real parking slots:', error)
+      } finally {
+        if (!cancelled) setSlotLoading(false)
+      }
+    }
+
+    loadSlots()
+    return () => { cancelled = true }
+  }, [])
+
   const selected = useMemo(
-    () => slots.find((slot) => slot.id === selectedSlot),
-    [selectedSlot]
+    () => parkingSlots.find((slot) => slot.id === selectedSlot),
+    [parkingSlots, selectedSlot]
   )
 
   const occupied = Math.max(parking.total - parking.available, 0)
@@ -149,9 +176,9 @@ export default function ParkingDetails() {
     if (!selectedSlot) return
 
     window.history.pushState(
-      { parking: parking.name, slot: selectedSlot },
+      { parking: parking.name, parkingId, slot: selected?.label, slotId: selectedSlot },
       '',
-      `/booking?parking=${encodeURIComponent(parking.name)}&slot=${selectedSlot}`
+      `/booking?parking=${encodeURIComponent(parking.name)}&parkingId=${parkingId}&slot=${encodeURIComponent(selected?.label || '')}&slotId=${selectedSlot}`
     )
 
     window.dispatchEvent(new PopStateEvent('popstate'))
@@ -160,6 +187,7 @@ export default function ParkingDetails() {
   return (
     <main className="parking-details-page pd-page">
       <div className="container">
+        {slotLoading && <p>Loading live parking slots…</p>}
         <button type="button" className="back-link" onClick={goBack}>
           <ArrowLeft size={17} />
           Back
@@ -349,7 +377,7 @@ export default function ParkingDetails() {
               </div>
 
               <div className="slot-row">
-                {slots.slice(0, 6).map((slot) => (
+                {parkingSlots.slice(0, 6).map((slot) => (
                   <SlotButton
                     key={slot.id}
                     slot={slot}
@@ -364,7 +392,7 @@ export default function ParkingDetails() {
               </div>
 
               <div className="slot-row">
-                {slots.slice(6, 12).map((slot) => (
+                {parkingSlots.slice(6, 12).map((slot) => (
                   <SlotButton
                     key={slot.id}
                     slot={slot}
@@ -379,7 +407,7 @@ export default function ParkingDetails() {
               </div>
 
               <div className="slot-row">
-                {slots.slice(12, 18).map((slot) => (
+                {parkingSlots.slice(12, 18).map((slot) => (
                   <SlotButton
                     key={slot.id}
                     slot={slot}

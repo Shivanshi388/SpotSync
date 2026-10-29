@@ -1,5 +1,12 @@
+
 import { useEffect, useMemo, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+} from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
@@ -16,11 +23,13 @@ import { getParkingOverview } from '../services/parkingService'
 import '../styles/explore-purple.css'
 
 const FILTERS = ['All', 'Available', 'Full', 'EV Charging']
-// Temporary placeholder positions (approximate), used only when the backend sends none
+
+const DEMO_PARKING_NAME = 'spotsync demo parking'
+
 const FALLBACK_COORDS = {
   'City Center Parking': [28.6692, 77.4538],
   'Metro Plaza Parking': [28.6615, 77.4412],
-  'Tech Park Parking': [28.6848, 77.4330],
+  'Tech Park Parking': [28.6848, 77.433],
 }
 
 const pinIcon = L.divIcon({
@@ -32,11 +41,19 @@ const pinIcon = L.divIcon({
 
 function toNumber(value) {
   if (value == null || value === '') return null
+
   const number = Number(value)
   return Number.isFinite(number) ? number : null
 }
 
-function ParkingCard({ parking, selected, saved, onSelect, onSave, onNavigate }) {
+function ParkingCard({
+  parking,
+  selected,
+  saved,
+  onSelect,
+  onSave,
+  onNavigate,
+}) {
   return (
     <article
       className={`ep-card ${selected ? 'selected' : ''}`}
@@ -72,37 +89,45 @@ function ParkingCard({ parking, selected, saved, onSelect, onSave, onNavigate })
           <span>
             Total slots: <b>{parking.total}</b>
           </span>
+
           <span>
             Available:{' '}
             <b className={parking.available > 0 ? 'green' : 'red'}>
               {parking.available}
             </b>
           </span>
+
           {parking.distance && (
             <span>
               <Navigation size={12} /> {parking.distance}
             </span>
           )}
+
           {parking.walking && (
             <span>
               <Clock3 size={12} /> {parking.walking}
             </span>
           )}
+
           {parking.rating != null && (
             <span>
               <Star size={12} fill="currentColor" /> {parking.rating}
             </span>
           )}
+
           {parking.ev && (
             <span className="ep-tag">
               <Zap size={12} /> EV
             </span>
           )}
+
           {parking.covered && <span className="ep-tag">Covered</span>}
         </div>
 
         <div className="ep-card-bottom">
-          <strong>{parking.price != null ? `₹${parking.price}/hour` : ' '}</strong>
+          <strong>
+            {parking.price != null ? `₹${parking.price}/hour` : ' '}
+          </strong>
 
           <button
             type="button"
@@ -120,8 +145,42 @@ function ParkingCard({ parking, selected, saved, onSelect, onSave, onNavigate })
   )
 }
 
+function FitMapToLots({ lots, selected }) {
+  const map = useMap()
+
+  useEffect(() => {
+    const points = lots
+      .filter((lot) => lot.lat != null && lot.lng != null)
+      .map((lot) => [lot.lat, lot.lng])
+
+    if (points.length === 0) return
+
+    if (points.length === 1) {
+      map.setView(points[0], 14)
+      return
+    }
+
+    map.fitBounds(points, {
+      padding: [35, 35],
+      maxZoom: 14,
+    })
+  }, [map, lots])
+
+  useEffect(() => {
+    if (selected?.lat == null || selected?.lng == null) return
+
+    map.panTo([selected.lat, selected.lng], {
+      animate: true,
+    })
+  }, [map, selected?.id, selected?.lat, selected?.lng])
+
+  return null
+}
+
 function MapPanel({ lots, selected, onSelect }) {
-  const withCoords = lots.filter((lot) => lot.lat != null && lot.lng != null)
+  const withCoords = lots.filter(
+    (lot) => lot.lat != null && lot.lng != null
+  )
 
   if (withCoords.length === 0) {
     return (
@@ -129,35 +188,38 @@ function MapPanel({ lots, selected, onSelect }) {
         <MapPin size={34} />
         <h3>Map locations not available yet</h3>
         <p>
-          Your parking data has no latitude and longitude, so pins can't be
-          placed on the map yet.
+          Your parking data has no latitude and longitude, so pins cannot
+          be placed on the map yet.
         </p>
       </div>
     )
   }
 
-  const center = selected?.lat != null
+  const center = selected
     ? [selected.lat, selected.lng]
     : [withCoords[0].lat, withCoords[0].lng]
 
   return (
     <MapContainer
       center={center}
-      zoom={13}
+      zoom={12}
       className="ep-map"
-      key={selected?.id ?? 'map'}
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution="© OpenStreetMap"
       />
 
+      <FitMapToLots lots={withCoords} selected={selected} />
+
       {withCoords.map((lot) => (
         <Marker
           key={lot.id}
           position={[lot.lat, lot.lng]}
           icon={pinIcon}
-          eventHandlers={{ click: () => onSelect(lot.id) }}
+          eventHandlers={{
+            click: () => onSelect(lot.id),
+          }}
         >
           <Popup>
             <b>{lot.name}</b>
@@ -188,40 +250,59 @@ export default function ExploreParking({ onNavigate }) {
         setError('')
 
         const response = await getParkingOverview()
-        const lots = response?.parking_lots ?? []
 
-                const mapped = lots.map((lot) => ({
-          id: lot.id,
-          name: lot.name || `Parking location ${lot.id}`,
-          address: lot.address || '',
-          available: Number(lot.available_slots ?? 0),
-          total: Number(lot.total_slots ?? 0),
-          price: lot.price ?? null,
-          rating: lot.rating ?? null,
-          distance: lot.distance ?? '',
-          walking: lot.walking ?? '',
-          ev: Boolean(lot.ev_charging),
-          covered: Boolean(lot.covered),
-          lat:
-            toNumber(lot.latitude ?? lot.lat) ??
-            FALLBACK_COORDS[lot.name]?.[0] ??
-            null,
-          lng:
-            toNumber(lot.longitude ?? lot.lng ?? lot.lon) ??
-            FALLBACK_COORDS[lot.name]?.[1] ??
-            null,
-        }))
+        const lots = (response?.parking_lots ?? []).filter(
+          (lot) =>
+            lot.name?.trim().toLowerCase() !== DEMO_PARKING_NAME
+        )
+
+        const mapped = lots.map((lot) => {
+          const fallback = FALLBACK_COORDS[lot.name]
+
+          return {
+            id: lot.id,
+            name: lot.name || `Parking location ${lot.id}`,
+            address: lot.address || '',
+            available: Number(lot.available_slots ?? 0),
+            total: Number(lot.total_slots ?? 0),
+            price: lot.price ?? null,
+            rating: lot.rating ?? null,
+            distance: lot.distance ?? '',
+            walking: lot.walking ?? '',
+            ev: Boolean(lot.ev_charging),
+            covered: Boolean(lot.covered),
+            lat:
+              toNumber(lot.latitude ?? lot.lat) ??
+              fallback?.[0] ??
+              null,
+            lng:
+              toNumber(lot.longitude ?? lot.lng ?? lot.lon) ??
+              fallback?.[1] ??
+              null,
+          }
+        })
 
         if (cancelled) return
 
         setParkingData(mapped)
 
-        const wanted = new URLSearchParams(window.location.search).get('parking')
+        const wanted = new URLSearchParams(
+          window.location.search
+        ).get('parking')
+
         if (wanted) {
           const match = mapped.find(
-            (lot) => lot.name === wanted || String(lot.id) === wanted
+            (lot) =>
+              lot.name === wanted || String(lot.id) === wanted
           )
+
           if (match) setSelectedId(match.id)
+        } else if (mapped.length > 0) {
+          setSelectedId((current) =>
+            mapped.some((lot) => lot.id === current)
+              ? current
+              : mapped[0].id
+          )
         }
       } catch (err) {
         if (!cancelled) {
@@ -251,21 +332,27 @@ export default function ExploreParking({ onNavigate }) {
           const hit =
             lot.name.toLowerCase().includes(text) ||
             lot.address.toLowerCase().includes(text)
+
           if (!hit) return false
         }
+
         if (filter === 'Available') return lot.available > 0
         if (filter === 'Full') return lot.available === 0
         if (filter === 'EV Charging') return lot.ev
+
         return true
       })
       .sort((a, b) => b.available - a.available)
   }, [parkingData, query, filter])
 
-  const selected = filtered.find((lot) => lot.id === selectedId) ?? filtered[0]
+  const selected =
+    filtered.find((lot) => lot.id === selectedId) ?? filtered[0]
 
   function toggleSaved(id) {
     setSaved((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id]
     )
   }
 
@@ -297,16 +384,26 @@ export default function ExploreParking({ onNavigate }) {
           </div>
 
           <p className="ep-count">
-            {loading ? 'Loading...' : `${filtered.length} parking locations`}
+            {loading
+              ? 'Loading...'
+              : `${filtered.length} parking locations`}
           </p>
 
-          {loading && <p className="ep-note">Loading parking locations from the server...</p>}
+          {loading && (
+            <p className="ep-note">
+              Loading parking locations from the server...
+            </p>
+          )}
 
           {!loading && error && (
             <div className="ep-note" role="alert">
               <strong>Could not load parking</strong>
               <p>{error}</p>
-              <button type="button" className="ep-button" onClick={() => window.location.reload()}>
+              <button
+                type="button"
+                className="ep-button"
+                onClick={() => window.location.reload()}
+              >
                 Try again
               </button>
             </div>
@@ -336,7 +433,11 @@ export default function ExploreParking({ onNavigate }) {
         </aside>
 
         <div className="ep-map-column">
-          <MapPanel lots={filtered} selected={selected} onSelect={setSelectedId} />
+          <MapPanel
+            lots={filtered}
+            selected={selected}
+            onSelect={setSelectedId}
+          />
         </div>
       </section>
     </main>

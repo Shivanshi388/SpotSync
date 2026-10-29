@@ -76,6 +76,18 @@ export default function Login() {
         <h1>Log in to SpotSync</h1>
         <p>Access your parking reservations and saved spots.</p>
 
+        <p className="auth-switch">
+          <button
+            type="button"
+            onClick={() => {
+              window.history.pushState({}, '', '/forgot-password')
+              window.dispatchEvent(new PopStateEvent('popstate'))
+            }}
+          >
+            Forgot password?
+          </button>
+        </p>
+
         <form onSubmit={handleSubmit}>
           <label>
             Email
