@@ -17,17 +17,29 @@ def verify_password(password: str, hashed_password: str) -> bool:
     return password_hash.verify(password, hashed_password)
 
 
-def create_access_token(data: dict) -> str:
-    to_encode = data.copy()
-
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.jwt_access_token_expire_minutes
+def create_access_token(
+    subject: str,
+    role: str | None = None,
+    expires_minutes: int | None = None,
+) -> str:
+    minutes = (
+        expires_minutes
+        if expires_minutes is not None
+        else settings.jwt_access_token_expire_minutes
     )
 
-    to_encode.update({"exp": expire})
+    expire = datetime.now(timezone.utc) + timedelta(minutes=minutes)
+
+    payload = {
+        "sub": subject,
+        "exp": expire,
+    }
+
+    if role is not None:
+        payload["role"] = role
 
     return jwt.encode(
-        to_encode,
+        payload,
         settings.jwt_secret_key,
         algorithm=settings.jwt_algorithm,
     )

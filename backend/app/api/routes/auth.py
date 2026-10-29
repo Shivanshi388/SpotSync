@@ -1,5 +1,6 @@
 from app.api.dependencies import get_current_user
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -35,6 +36,28 @@ def register(
             detail=str(exc),
         )
 
+    except IntegrityError as exc:
+        db.rollback()
+
+        error_message = str(exc.orig).lower()
+
+        if "users_phone_key" in error_message or "phone" in error_message:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Mobile number already registered. Please use another number or log in.",
+            )
+
+        if "users_email_key" in error_message or "email" in error_message:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email already registered. Please use another email or log in.",
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with these details already exists.",
+        )
+
 
 @router.post("/login", response_model=TokenResponse)
 def login(
@@ -58,6 +81,8 @@ def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(exc),
         )
+
+
 @router.get("/me")
 def get_me(current_user=Depends(get_current_user)):
     return {

@@ -1,36 +1,23 @@
+import { useEffect, useState } from 'react'
 import {
   ArrowRight,
+  CalendarCheck,
   Car,
+  Clock,
   Clock3,
+  CreditCard,
   MapPin,
   Search,
   ShieldCheck,
   Zap,
 } from 'lucide-react'
-import { useState } from 'react'
+import api from '../services/api'
 
-const parkingSpots = [
-  {
-    name: 'City Center Parking',
-    distance: '0.4 km',
-    available: 18,
-    total: 42,
-    price: '₹30/hr',
-  },
-  {
-    name: 'Metro Plaza Parking',
-    distance: '0.8 km',
-    available: 7,
-    total: 25,
-    price: '₹40/hr',
-  },
-  {
-    name: 'Tech Park Parking',
-    distance: '1.2 km',
-    available: 31,
-    total: 60,
-    price: '₹25/hr',
-  },
+const strip = [
+  { icon: Search, title: 'Find Parking', text: 'Locate nearby parking facilities' },
+  { icon: CalendarCheck, title: 'Book Slot', text: 'Reserve your spot in advance' },
+  { icon: CreditCard, title: 'Pay Securely', text: 'Multiple payment options' },
+  { icon: Clock, title: 'Save Time', text: 'Skip the hassle, park faster' },
 ]
 
 const features = [
@@ -62,117 +49,92 @@ const features = [
 
 function Home() {
   const [location, setLocation] = useState('')
+  const [parkingSpots, setParkingSpots] = useState([])
+  const [parkingLoading, setParkingLoading] = useState(true)
+  const [parkingError, setParkingError] = useState('')
+
+  useEffect(() => {
+    api
+      .get('/parking/overview')
+      .then((response) => {
+        setParkingSpots(response.data.parking_lots || [])
+      })
+      .catch((error) => {
+        console.error('Failed to load parking data:', error)
+        setParkingError('Unable to load parking data. Please try again.')
+      })
+      .finally(() => {
+        setParkingLoading(false)
+      })
+  }, [])
+
+  const openParkingPage = () => {
+    window.history.pushState({}, '', '/parking')
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  }
+
+  const openParkingSpot = (spot) => {
+    window.history.pushState(
+      {},
+      '',
+      `/parking?parking=${encodeURIComponent(spot.name || spot.id)}`
+    )
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  }
 
   return (
     <>
-      <section className="hero" id="home">
-        <div className="container hero-grid">
-          <div className="hero-content">
-            <div className="eyebrow">
-              <span className="pulse-dot" />
-              Smart parking, made simple
-            </div>
+      <section className="sp-hero" id="home">
+        <div className="sp-hero-overlay">
+          <h1>
+            Smart Parking
+            <br />
+            Made Simple
+          </h1>
 
-            <h1>
-              Find your spot.
-              <br />
-              <span>Sync your journey.</span>
-            </h1>
+          <p>
+            Find available parking slots, book in advance,
+            <br />
+            and enjoy a hassle-free parking experience.
+          </p>
 
-            <p className="hero-text">
-              Discover available parking spaces in real time, reserve your
-              spot, and get where you're going without the parking stress.
-            </p>
+          <div className="sp-hero-search">
+            <MapPin size={19} />
 
-            <div className="search-box">
-              <MapPin size={22} />
+            <input
+              value={location}
+              onChange={(event) => setLocation(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') openParkingPage()
+              }}
+              placeholder="Search location (e.g. City Center, Ghaziabad)"
+              aria-label="Parking location"
+            />
 
-              <input
-                value={location}
-                onChange={(event) => setLocation(event.target.value)}
-                placeholder="Where do you want to park?"
-                aria-label="Parking location"
-              />
-
-              <button
-                className="search-button"
-                onClick={() => {
-                  window.history.pushState({}, '', '/parking')
-                  window.dispatchEvent(new PopStateEvent('popstate'))
-                }}
-              >
-                <Search size={19} />
-                Find Parking
-              </button>
-            </div>
-
-            <div className="hero-stats">
-              <div>
-                <strong>1,200+</strong>
-                <span>Parking spots</span>
-              </div>
-
-              <div>
-                <strong>98%</strong>
-                <span>Availability accuracy</span>
-              </div>
-
-              <div>
-                <strong>24/7</strong>
-                <span>Live monitoring</span>
-              </div>
-            </div>
+            <button type="button" onClick={openParkingPage}>
+              Search
+            </button>
           </div>
 
-          <div className="hero-visual" aria-label="Parking availability preview">
-            <div className="map-card">
-              <div className="map-header">
-                <div>
-                  <span className="map-label">LIVE PARKING</span>
-                  <strong>Nearby spots</strong>
-                </div>
-
-                <div className="live-badge">
-                  <span />
-                  Live
-                </div>
-              </div>
-
-              <div className="map-area">
-                <div className="road road-one" />
-                <div className="road road-two" />
-                <div className="road road-three" />
-
-                <div className="map-pin pin-one">
-                  <MapPin size={18} />
-                </div>
-
-                <div className="map-pin pin-two">
-                  <MapPin size={18} />
-                </div>
-
-                <div className="map-pin pin-three">
-                  <MapPin size={18} />
-                </div>
-
-                <div className="you-are-here">
-                  <span />
-                  You
-                </div>
-              </div>
-
-              <div className="map-footer">
-                <div>
-                  <span>Nearest available</span>
-                  <strong>City Center Parking</strong>
-                </div>
-
-                <button className="icon-button" aria-label="View parking">
-                  <ArrowRight size={19} />
-                </button>
-              </div>
-            </div>
+          <div className="sp-hero-stats">
+            <span><b>1,200+</b> Parking spots</span>
+            <span><b>98%</b> Availability accuracy</span>
+            <span><b>24/7</b> Live monitoring</span>
           </div>
+        </div>
+
+        <div className="sp-hero-strip">
+          {strip.map((item) => {
+            const Icon = item.icon
+
+            return (
+              <div className="sp-strip-item" key={item.title}>
+                <Icon size={26} />
+                <h4>{item.title}</h4>
+                <span>{item.text}</span>
+              </div>
+            )
+          })}
         </div>
       </section>
 
@@ -184,40 +146,80 @@ function Home() {
               <h2>Spaces available right now</h2>
             </div>
 
-            <button className="text-button">
+            <button className="text-button" onClick={openParkingPage}>
               View all
               <ArrowRight size={17} />
             </button>
           </div>
 
           <div className="parking-grid">
-            {parkingSpots.map((spot) => (
-              <article className="parking-card" key={spot.name}>
-                <div className="parking-card-icon">
-                  <Car size={21} />
-                </div>
-
-                <div className="parking-card-main">
-                  <div className="parking-card-title">
-                    <h3>{spot.name}</h3>
-                    <span className="available">Available</span>
+            {parkingLoading ? (
+              <p>Loading parking spaces...</p>
+            ) : parkingError ? (
+              <p role="alert">{parkingError}</p>
+            ) : parkingSpots.length === 0 ? (
+              <p>No parking spaces available right now.</p>
+            ) : (
+              parkingSpots.map((spot) => (
+                <article
+                  className="parking-card"
+                  key={spot.id ?? spot.name}
+                  role="link"
+                  tabIndex={0}
+                  onClick={() => openParkingSpot(spot)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      openParkingSpot(spot)
+                    }
+                  }}
+                >
+                  <div className="parking-card-icon">
+                    <Car size={21} />
                   </div>
 
-                  <p>
-                    <MapPin size={15} />
-                    {spot.distance} away
-                  </p>
+                  <div className="parking-card-main">
+                    <div className="parking-card-title">
+                      <h3>{spot.name || 'Parking location'}</h3>
 
-                  <div className="parking-card-bottom">
-                    <span>
-                      <strong>{spot.available}</strong> / {spot.total} spots
-                    </span>
+                      <span
+                        className={
+                          Number(spot.available_slots) > 0
+                            ? 'available'
+                            : 'unavailable'
+                        }
+                      >
+                        {Number(spot.available_slots) > 0
+                          ? 'Available'
+                          : 'Full'}
+                      </span>
+                    </div>
 
-                    <strong>{spot.price}</strong>
+                    <p>
+                      <MapPin size={15} />
+                      {spot.address || 'Location details unavailable'}
+                    </p>
+
+                    <div className="parking-card-bottom">
+                      <span>
+                        <strong>{spot.available_slots ?? 0}</strong> /{' '}
+                        {spot.total_slots ?? 0} spots available
+                      </span>
+
+                      <strong>
+                        {spot.occupancy_rate != null
+                          ? `${Math.round(
+                              Number(spot.occupancy_rate) <= 1
+                                ? Number(spot.occupancy_rate) * 100
+                                : Number(spot.occupancy_rate)
+                            )}% occupied`
+                          : 'Occupancy unavailable'}
+                      </strong>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              ))
+            )}
           </div>
         </div>
       </section>

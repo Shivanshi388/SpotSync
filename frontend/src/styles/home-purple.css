@@ -1,0 +1,200 @@
+/* ---------- Hero ---------- */
+.sp-hero {
+  position: relative;
+  margin-bottom: 90px;
+  font-family: 'Poppins', sans-serif;
+  background:
+    linear-gradient(180deg, rgba(36, 27, 47, 0.55), rgba(60, 9, 108, 0.35)),
+    url("https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=2000&q=85")
+      center / cover no-repeat;
+  background-color: var(--primary-dark);
+}
+
+.sp-hero-overlay {
+  color: #fff;
+  text-align: center;
+  padding: 90px 20px 130px;
+}
+.sp-hero-overlay h1 {
+  font-size: 48px;
+  line-height: 1.15;
+  font-weight: 700;
+  margin: 0 0 16px;
+  color: #fff;
+}
+.sp-hero-overlay p {
+  font-size: 16px;
+  opacity: 0.92;
+  margin: 0 0 30px;
+  color: #fff;
+}
+
+.sp-hero-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 620px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 8px 8px 16px;
+  color: var(--primary);
+}
+.sp-hero-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background: transparent;
+}
+.sp-hero-search button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.sp-hero-search button:hover { background: var(--primary-hover); }
+
+.sp-hero-stats {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-top: 26px;
+  font-size: 13px;
+  opacity: 0.92;
+}
+.sp-hero-stats b { font-size: 16px; margin-right: 4px; }
+
+.sp-hero-strip {
+  position: absolute;
+  left: 50%;
+  bottom: -60px;
+  transform: translateX(-50%);
+  width: min(900px, 92%);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 10px 40px rgba(60, 9, 108, 0.18);
+}
+.sp-strip-item {
+  padding: 22px 12px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+  color: var(--primary);
+}
+.sp-strip-item:last-child { border-right: none; }
+.sp-strip-item h4 { margin: 8px 0 4px; font-size: 14px; color: var(--text); }
+.sp-strip-item span { font-size: 11px; color: var(--muted); }
+
+@media (max-width: 700px) {
+  .sp-hero { margin-bottom: 140px; }
+  .sp-hero-overlay h1 { font-size: 32px; }
+  .sp-hero-strip { grid-template-columns: repeat(2, 1fr); bottom: -120px; }
+}
+
+/* ---------- Nearby parking section ---------- */
+.parking-section {
+  background: var(--bg);
+  font-family: 'Poppins', sans-serif;
+}
+
+.section-kicker {
+  color: var(--primary);
+  font-weight: 600;
+  letter-spacing: 1px;
+  font-size: 12px;
+}
+
+.section-heading h2 {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.text-button {
+  color: var(--primary);
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.text-button:hover { color: var(--primary-hover); }
+
+.parking-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  cursor: pointer;
+}
+.parking-card:hover,
+.parking-card:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--primary);
+  box-shadow: 0 10px 30px rgba(60, 9, 108, 0.15);
+  outline: none;
+}
+
+.parking-card-icon {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: 10px;
+}
+
+.parking-card-title h3 { color: var(--text); font-weight: 600; }
+.parking-card p { color: var(--muted); }
+
+.parking-card .available {
+  background: #DCFCE7;
+  color: var(--success);
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.parking-card .unavailable {
+  background: #FEE2E2;
+  color: var(--danger);
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.parking-card-bottom { color: var(--muted); }
+.parking-card-bottom strong { color: var(--primary); }
+
+/* ---------- Why SpotSync section ---------- */
+.features-section {
+  background: #fff;
+  font-family: 'Poppins', sans-serif;
+}
+
+.feature-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.feature-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(60, 9, 108, 0.15);
+}
+
+.feature-icon {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: 10px;
+}
+
+.feature-card h3 { color: var(--text); font-weight: 600; }
+.feature-card p { color: var(--muted); }

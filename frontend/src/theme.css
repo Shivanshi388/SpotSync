@@ -1,0 +1,20 @@
+@import "./styles/variables.css";
+
+:root {
+  --primary: var(--primary-color);
+  --primary-soft: #A78BFA;
+  --dark: var(--sidebar-color);
+  --bg: var(--background-color);
+  --card: var(--surface-color);
+  --text: var(--text-color);
+  --muted: var(--text-secondary);
+  --border: var(--border-color);
+  --success: var(--success-color);
+  --danger: var(--danger-color);
+  --radius: var(--border-radius);
+  --shadow: var(--card-shadow);
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+}

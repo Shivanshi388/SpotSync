@@ -1,0 +1,33 @@
+
+:root {
+  /* BTS Purple Theme */
+  --primary-color: #7B2CBF;
+  --primary-hover: #5A189A;
+  --primary-light: #EDE3FA;
+  --primary-dark: #3C096C;
+
+  /* Backgrounds */
+  --background-color: #F8F7FB;
+  --surface-color: #FFFFFF;
+  --sidebar-color: #211A2B;
+
+  /* Text */
+  --text-color: #241B2F;
+  --text-secondary: #716A7B;
+  --text-on-primary: #FFFFFF;
+
+  /* Borders and shadows */
+  --border-color: #E7E0ED;
+  --card-shadow: 0 4px 16px rgba(60, 9, 108, 0.08);
+
+  /* Status colours — preserve their meanings */
+  --success-color: #16A36A;
+  --warning-color: #E9A23B;
+  --danger-color: #D94B62;
+  --info-color: #7B2CBF;
+
+  /* Layout */
+  --border-radius: 12px;
+  --border-radius-small: 8px;
+  --content-max-width: 1440px;
+}

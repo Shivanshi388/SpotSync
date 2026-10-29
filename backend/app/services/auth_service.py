@@ -53,10 +53,8 @@ def login_user(
         raise ValueError("Invalid email or password")
 
     access_token = create_access_token(
-        {
-            "user_id": user.id,
-            "role": user.role,
-        }
+        subject=str(user.id),
+        role=user.role,
     )
 
     return user, access_token

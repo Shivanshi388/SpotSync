@@ -1,84 +1,154 @@
-import { ArrowLeft, Car, Mail, Lock, User } from 'lucide-react'
+﻿import { useState } from 'react'
 
-function navigate(path) {
-  window.history.pushState({}, '', path)
-  window.dispatchEvent(new PopStateEvent('popstate'))
-}
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
 export default function Register() {
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+  })
+
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const updateField = (event) => {
+    const { name, value } = event.target
+
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+    }))
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+
+    setError('')
+    setLoading(true)
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          password: form.password,
+        }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail ||
+            data.message ||
+            'Registration failed. Please try again.'
+        )
+      }
+
+      alert('Registration successful! Please log in.')
+
+      window.history.pushState({}, '', '/login')
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    } catch (err) {
+      console.error('Registration error:', err)
+      setError(err.message || 'Unable to connect to the server.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <main className="auth-page">
       <div className="auth-card">
-        <button
-          type="button"
-          className="back-link"
-          onClick={() => navigate('/')}
-        >
-          <ArrowLeft size={17} />
-          Back to home
-        </button>
-
-        <div className="auth-icon">
-          <Car size={25} />
-        </div>
-
         <span className="section-kicker">GET STARTED</span>
+
         <h1>Create your SpotSync account</h1>
-        <p className="auth-subtitle">
-          Join SpotSync and make parking simpler.
+
+        <p>
+          Register to discover parking, reserve slots, and manage your
+          bookings.
         </p>
 
-        <form
-          className="auth-form"
-          onSubmit={(event) => {
-            event.preventDefault()
-            alert('Registration will be connected to the backend soon.')
-          }}
-        >
+        {error && (
+          <div className="auth-error" role="alert">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
           <label>
-            Full name
-            <div className="auth-input">
-              <User size={18} />
-              <input
-                type="text"
-                placeholder="Your name"
-                required
-              />
-            </div>
+            Name
+            <input
+              type="text"
+              name="name"
+              value={form.name}
+              onChange={updateField}
+              placeholder="Your name"
+              required
+            />
           </label>
 
           <label>
-            Email address
-            <div className="auth-input">
-              <Mail size={18} />
-              <input
-                type="email"
-                placeholder="you@example.com"
-                required
-              />
-            </div>
+            Email
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={updateField}
+              placeholder="you@example.com"
+              required
+            />
+          </label>
+
+          <label>
+            Phone
+            <input
+              type="tel"
+              name="phone"
+              value={form.phone}
+              onChange={updateField}
+              placeholder="9876543210"
+              required
+            />
           </label>
 
           <label>
             Password
-            <div className="auth-input">
-              <Lock size={18} />
-              <input
-                type="password"
-                placeholder="Create a password"
-                required
-              />
-            </div>
+            <input
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={updateField}
+              placeholder="Create a password"
+              required
+            />
           </label>
 
-          <button type="submit" className="primary-button auth-submit">
-            Create account
+          <button
+            type="submit"
+            className="primary-button"
+            disabled={loading}
+          >
+            {loading ? 'Creating account...' : 'Create account'}
           </button>
         </form>
 
         <p className="auth-switch">
           Already have an account?{' '}
-          <button type="button" onClick={() => navigate('/login')}>
+          <button
+            type="button"
+            onClick={() => {
+              window.history.pushState({}, '', '/login')
+              window.dispatchEvent(new PopStateEvent('popstate'))
+            }}
+          >
             Log in
           </button>
         </p>
@@ -86,3 +156,4 @@ export default function Register() {
     </main>
   )
 }
+

@@ -1,0 +1,28 @@
+{
+  "simulation_interval_seconds": 5,
+  "parking_lot": {
+    "lot_id": "LOT_A",
+    "slots": [
+      {
+        "slot_id": "LOT_A_001",
+        "sensor_id": "SENSOR_001"
+      },
+      {
+        "slot_id": "LOT_A_002",
+        "sensor_id": "SENSOR_002"
+      },
+      {
+        "slot_id": "LOT_A_003",
+        "sensor_id": "SENSOR_003"
+      },
+      {
+        "slot_id": "LOT_A_004",
+        "sensor_id": "SENSOR_004"
+      },
+      {
+        "slot_id": "LOT_A_005",
+        "sensor_id": "SENSOR_005"
+      }
+    ]
+  }
+}

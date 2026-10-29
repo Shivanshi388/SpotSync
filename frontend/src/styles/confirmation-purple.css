@@ -1,0 +1,50 @@
+﻿.cf-page { font-family: 'Poppins', sans-serif; padding: 50px 0 70px; }
+
+.cf-card {
+  max-width: 640px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 40px 36px;
+  text-align: center;
+}
+
+.cf-check { color: var(--success); display: flex; justify-content: center; margin-bottom: 12px; }
+.cf-card h1 { margin: 0 0 6px; font-size: 26px; font-weight: 700; color: var(--text); }
+.cf-sub { margin: 0 0 26px; font-size: 14px; color: var(--muted); }
+
+.cf-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 24px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 26px;
+}
+.cf-details span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+.cf-details strong { font-size: 14px; color: var(--text); }
+
+.cf-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.cf-primary,
+.cf-outline {
+  min-width: 170px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.cf-primary { background: var(--primary); color: #fff; border: 1.5px solid var(--primary); }
+.cf-primary:hover { background: var(--primary-hover); }
+.cf-outline { background: #fff; color: var(--primary); border: 1.5px solid var(--primary); }
+.cf-outline:hover { background: var(--primary-light); }
+
+@media (max-width: 560px) {
+  .cf-card { padding: 28px 18px; }
+  .cf-details { grid-template-columns: 1fr; }
+}

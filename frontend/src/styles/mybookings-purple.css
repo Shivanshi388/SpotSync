@@ -1,0 +1,130 @@
+﻿.mb-wrap {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: calc(100vh - 72px);
+  font-family: 'Poppins', sans-serif;
+  background: var(--bg);
+}
+
+.mb-side {
+  background: var(--sidebar-color);
+  color: #fff;
+  padding: 22px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.mb-user { display: flex; align-items: center; gap: 10px; padding: 0 6px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+.mb-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+.mb-side nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.mb-side button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.75);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.mb-side button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.mb-side button.active { background: var(--primary); color: #fff; font-weight: 600; }
+.mb-side button:disabled { opacity: 0.4; cursor: not-allowed; }
+.mb-logout { border-top: 1px solid rgba(255, 255, 255, 0.12) !important; border-radius: 0 !important; padding-top: 16px !important; }
+
+.mb-main { padding: 28px; }
+.mb-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+  max-width: 900px;
+}
+.mb-card h1 { margin: 0 0 16px; font-size: 20px; font-weight: 700; color: var(--text); }
+
+.mb-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.mb-tabs button {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+.mb-tabs button span { opacity: 0.7; margin-left: 2px; }
+.mb-tabs button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+.mb-list { display: grid; gap: 12px; }
+.mb-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.mb-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary-soft), var(--primary-dark));
+}
+.mb-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.mb-info strong { font-size: 14px; color: var(--text); }
+.mb-info span { font-size: 12px; color: var(--muted); }
+.mb-info small { font-size: 11px; color: var(--muted); }
+
+.mb-end { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.mb-end strong { font-size: 14px; color: var(--text); }
+.mb-badge { font-size: 12px; font-weight: 600; padding: 2px 12px; border-radius: 20px; }
+.mb-badge.upcoming { background: var(--primary-light); color: var(--primary); }
+.mb-badge.completed { background: #DCFCE7; color: var(--success); }
+.mb-badge.cancelled { background: #FEE2E2; color: var(--danger); }
+.mb-cancel { background: none; border: none; color: var(--danger); font-size: 12px; font-family: inherit; cursor: pointer; padding: 0; }
+.mb-cancel:hover { text-decoration: underline; }
+
+.mb-empty { text-align: center; padding: 40px 10px; color: var(--primary); }
+.mb-empty h3 { margin: 12px 0 4px; color: var(--text); }
+.mb-empty p { margin: 0 0 16px; font-size: 13px; color: var(--muted); }
+.mb-primary {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.mb-primary:hover { background: var(--primary-hover); }
+
+@media (max-width: 800px) {
+  .mb-wrap { grid-template-columns: 1fr; }
+  .mb-side { flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .mb-side nav { flex-direction: row; flex-wrap: wrap; }
+  .mb-side button { width: auto; }
+  .mb-main { padding: 14px; }
+}

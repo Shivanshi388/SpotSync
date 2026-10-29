@@ -1,11 +1,10 @@
 import { MapPin, Heart, Star, Zap, CarFront, ArrowRight } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 
 function ParkingCard({ parking, saved, onSave }) {
-  const navigate = useNavigate()
 
   function handleOpenDetails() {
-    navigate(`/parking/${parking.id}`)
+    window.history.pushState({}, '', '/parking-details')
+    window.dispatchEvent(new PopStateEvent('popstate'))
   }
 
   function handleSave(event) {
@@ -111,3 +110,6 @@ function ParkingCard({ parking, saved, onSave }) {
 }
 
 export default ParkingCard
+
+
+

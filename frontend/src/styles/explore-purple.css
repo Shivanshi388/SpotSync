@@ -1,0 +1,147 @@
+﻿.ep-page { font-family: 'Poppins', sans-serif; background: var(--bg); }
+
+.ep-layout {
+  display: grid;
+  grid-template-columns: 460px 1fr;
+  height: calc(100vh - 72px);
+  min-height: 560px;
+}
+
+.ep-list {
+  overflow-y: auto;
+  padding: 18px;
+  background: #fff;
+  border-right: 1px solid var(--border);
+}
+
+.ep-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 14px;
+  color: var(--muted);
+}
+.ep-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  background: transparent;
+  color: var(--text);
+}
+.ep-search:focus-within { border-color: var(--primary); }
+
+.ep-pills { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 6px; }
+.ep-pills button {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ep-pills button:hover { border-color: var(--primary); color: var(--primary); }
+.ep-pills button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+.ep-count { font-size: 12px; color: var(--muted); margin: 8px 0 12px; }
+.ep-note { font-size: 13px; color: var(--muted); padding: 10px 2px; }
+
+.ep-card {
+  display: flex;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.ep-card:hover { border-color: var(--primary-soft); }
+.ep-card.selected { border-color: var(--primary); box-shadow: var(--shadow); }
+
+.ep-thumb {
+  width: 92px;
+  min-height: 92px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary-soft), var(--primary-dark));
+}
+
+.ep-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.ep-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.ep-card-top h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+.ep-address { margin: 0; display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
+
+.ep-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); align-items: center; }
+.ep-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.ep-meta b { color: var(--text); }
+.ep-meta .green { color: var(--success); }
+.ep-meta .red { color: var(--danger); }
+.ep-tag { background: var(--primary-light); color: var(--primary); padding: 1px 8px; border-radius: 10px; }
+
+.ep-card-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+.ep-card-bottom strong { font-size: 15px; color: var(--text); }
+
+.ep-button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ep-button:hover { background: var(--primary-hover); }
+
+.ep-save { background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px; }
+.ep-save.saved { color: var(--primary); }
+
+.ep-map-column { position: relative; height: 100%; }
+.ep-map { height: 100%; width: 100%; }
+
+.ep-map-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 30px;
+  color: var(--primary);
+  background: linear-gradient(135deg, var(--primary-light), #fff);
+}
+.ep-map-empty h3 { margin: 12px 0 6px; color: var(--text); }
+.ep-map-empty p { max-width: 320px; font-size: 13px; color: var(--muted); }
+
+.ep-pin {
+  width: 34px;
+  height: 34px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(60, 9, 108, 0.5);
+}
+.ep-pin span { transform: rotate(45deg); font-weight: 700; font-size: 14px; }
+
+@media (max-width: 900px) {
+  .ep-layout { grid-template-columns: 1fr; grid-template-rows: 45vh auto; height: auto; }
+  .ep-map-column { order: -1; height: 45vh; }
+  .ep-list { overflow: visible; }
+}

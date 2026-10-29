@@ -1,0 +1,8 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#define WIFI_TIMEOUT_MS 15000
+#define MQTT_RECONNECT_DELAY_MS 5000
+#define SENSOR_READ_INTERVAL_MS 5000
+
+#endif
