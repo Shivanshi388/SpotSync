@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { getLatestSensorReadings, getStaffIncidents, getStaffNotifications } from '../services/staffApi'
+import { getStaffIncidents, getStaffNotifications } from '../services/staffApi'
+import { api } from '../services/api'
 
 const SpotSyncContext = createContext(null)
 
@@ -23,17 +24,21 @@ const BAY_FLOOR = bay =>
 
 function mapSensor(reading, sensorId) {
   const id = reading?.sensor_id || sensorId
+  const isEntrance = id === ENTRANCE_SENSOR_ID
+  const bayCode = isEntrance ? null : SENSOR_TO_BAY[id]
+
+  const location = isEntrance
+    ? 'Entrance / Ramp'
+    : BAY_FLOOR(bayCode)
 
   if (!reading) {
-    const isEntrance = id === ENTRANCE_SENSOR_ID
-
     return {
       id,
       sensor_id: id,
-      space: isEntrance ? 'Entrance / Ramp' : SENSOR_TO_BAY[id],
-      bayCode: isEntrance ? null : SENSOR_TO_BAY[id],
+      space: isEntrance ? 'Entrance / Ramp' : (bayCode || 'Unassigned bay'),
+      bayCode,
       slot_number: null,
-      location: isEntrance ? 'Entrance / Ramp' : BAY_FLOOR(SENSOR_TO_BAY[id]),
+      location,
       status: 'Unknown',
       occupancy: 'UNKNOWN',
       readingStatus: 'UNKNOWN',
@@ -52,23 +57,31 @@ function mapSensor(reading, sensorId) {
   const isFresh =
     Number.isFinite(ageMs) && ageMs >= -30000 && ageMs <= 120000
 
-  const isOnline = reading.is_online !== false && isFresh
+  const isOnline =
+    reading.is_online === true &&
+    isFresh &&
+    rawStatus !== 'SENSOR_OFFLINE'
 
-  const safeOccupancy = isOnline
-    ? rawStatus
-    : rawStatus === 'FAULT' ? 'FAULT' : 'UNKNOWN'
+  let displayStatus = 'Unknown'
 
-  const displayStatus =
-    rawStatus === 'FAULT'
-      ? 'Fault'
-      : isOnline
-        ? 'Online'
-        : timestamp
-          ? 'Stale'
-          : 'Unknown'
+  if (rawStatus === 'FAULT') {
+    displayStatus = 'Fault'
+  } else if (rawStatus === 'BLOCKED') {
+    displayStatus = 'Blocked'
+  } else if (rawStatus === 'UNEXPECTED_OCCUPANCY') {
+    displayStatus = 'Unexpected occupancy'
+  } else if (rawStatus === 'SENSOR_OFFLINE' || reading.is_online === false) {
+    displayStatus = 'Offline'
+  } else if (!isFresh) {
+    displayStatus = timestamp ? 'Stale' : 'Unknown'
+  } else if (isOnline) {
+    displayStatus = 'Online'
+  }
 
-  const isEntrance = id === ENTRANCE_SENSOR_ID
-  const bayCode = isEntrance ? null : SENSOR_TO_BAY[id]
+  const safeOccupancy =
+    isOnline && ['AVAILABLE', 'OCCUPIED'].includes(rawStatus)
+      ? rawStatus
+      : 'UNKNOWN'
 
   return {
     id,
@@ -76,10 +89,10 @@ function mapSensor(reading, sensorId) {
     space: isEntrance ? 'Entrance / Ramp' : (bayCode || 'Unassigned bay'),
     bayCode,
     slot_number: reading.slot_number || null,
-    location: isEntrance ? 'Entrance / Ramp' : BAY_FLOOR(bayCode),
+    location,
     status: displayStatus,
     occupancy: safeOccupancy,
-    readingStatus: safeOccupancy,
+    readingStatus: rawStatus,
     distance_cm: reading.distance_cm ?? null,
     lastSeen: timestamp,
     timestamp,
@@ -136,7 +149,7 @@ export function SpotSyncProvider({ children }) {
 
       try {
         const results = await Promise.allSettled([
-          getLatestSensorReadings(),
+          api.sensors.latest(),
           getStaffIncidents(),
           getStaffNotifications(),
         ])
@@ -165,6 +178,7 @@ export function SpotSyncProvider({ children }) {
           setLiveError('')
         } else {
           console.error('Sensor API error:', sensorResult.reason)
+          setSensors(EXPECTED_SENSOR_IDS.map(id => mapSensor(null, id)))
           setLiveError(
             sensorResult.reason?.message || 'Sensor data unavailable'
           )
@@ -192,7 +206,7 @@ export function SpotSyncProvider({ children }) {
 
     load()
 
-    const timer = window.setInterval(load, 3000)
+    const timer = window.setInterval(load, 5000)
 
     return () => {
       active = false
