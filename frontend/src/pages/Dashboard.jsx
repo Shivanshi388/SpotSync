@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle, ArrowRight, ArrowUpRight, BarChart3,
   CarFront, CheckCircle2, Grid2X2, MapPin, Plus,
@@ -27,6 +27,7 @@ export default function Dashboard({ go }) {
 
         try {
           data = await getLiveParking()
+          console.log("SPOTSYNC LIVE PARKING RESPONSE:", data)
         } catch {
           data = await getParkingOverview()
         }
@@ -34,6 +35,8 @@ export default function Dashboard({ go }) {
         const lots = Array.isArray(data)
           ? data
           : data?.parking_lots || []
+
+        console.log("SPOTSYNC DASHBOARD LOTS:", lots)
 
         if (!active) return
 
@@ -120,7 +123,7 @@ export default function Dashboard({ go }) {
         />
         <StatCard
           label="Reserved"
-          value="—"
+          value="Ã¢â‚¬â€"
           change="Reservation summary not connected"
           icon={Ticket}
           tone="amber"
@@ -196,22 +199,22 @@ export default function Dashboard({ go }) {
           <div className="snapshot-grid">
             <div>
               <span>Vehicle entries</span>
-              <b>—</b>
+              <b>Ã¢â‚¬â€</b>
               <small>Activity API not connected</small>
             </div>
             <div>
               <span>Vehicle exits</span>
-              <b>—</b>
+              <b>Ã¢â‚¬â€</b>
               <small>Activity API not connected</small>
             </div>
             <div>
               <span>Avg. parking duration</span>
-              <b>—</b>
+              <b>Ã¢â‚¬â€</b>
               <small>Session data unavailable</small>
             </div>
             <div>
               <span>Allocation success</span>
-              <b>—</b>
+              <b>Ã¢â‚¬â€</b>
               <small>Analytics API required</small>
             </div>
           </div>

@@ -124,10 +124,27 @@ def test_old_sensor_reading_is_rejected():
     assert result is False
 
 
-def test_future_sensor_reading_is_rejected():
+@patch("app.mqtt.message_handler.sensor_service.process_event")
+def test_sensor_reading_two_minutes_ahead_is_accepted(mock_process):
     db, _, _ = setup_sensor_db()
+    mock_process.return_value = MagicMock()
     future_timestamp = (
         datetime.now(timezone.utc) + timedelta(minutes=2)
+    ).isoformat()
+
+    result = handle_sensor_message(
+        db,
+        json.dumps(make_payload(timestamp=future_timestamp)).encode(),
+    )
+
+    assert result is True
+    mock_process.assert_called_once()
+
+
+def test_sensor_reading_ten_minutes_ahead_is_rejected():
+    db, _, _ = setup_sensor_db()
+    future_timestamp = (
+        datetime.now(timezone.utc) + timedelta(minutes=10)
     ).isoformat()
 
     result = handle_sensor_message(

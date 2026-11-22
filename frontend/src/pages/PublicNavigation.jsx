@@ -1,14 +1,14 @@
-import React, { useCallback, useEffect, useState } from 'react'
+﻿import React, { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   AlertCircle, CheckCircle2, Loader2, MapPin,
   Navigation as NavigationIcon, RefreshCw, Car, Clock
 } from 'lucide-react'
+const API_URL = `${(import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api').replace(/\/+$/, '')}/tickets/driver`
 
-const API_URL = '/api/navigate'
-
-export default function PublicNavigation() {
-  const { token } = useParams()
+export default function PublicNavigation({ token: suppliedToken } = {}) {
+  const params = useParams()
+  const token = suppliedToken || params.token
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

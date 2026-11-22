@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   BrowserRouter,
   useLocation,
@@ -7,7 +7,7 @@ import {
 } from 'react-router-dom'
 
 import { initialAlerts, initialSpaces } from './data/mockData'
-import { SpotSyncProvider } from './context/SpotSyncContext'
+import { SpotSyncProvider, useSpotSync } from './context/SpotSyncContext'
 import { Shell } from './components/Shared'
 
 import Landing from './pages/Landing'
@@ -39,12 +39,60 @@ import {
   clearAuthToken
 } from './services/api'
 
+const SENSOR_TO_BAY = {
+  SENSOR_001: 'B1-A1',
+  SENSOR_002: 'B1-A2',
+  SENSOR_003: 'B1-A3',
+  SENSOR_004: 'B2-A1',
+  SENSOR_005: 'B2-A2',
+  SENSOR_006: 'B2-A3',
+  SENSOR_007: 'B2-A4',
+}
+
+// Overlay the live sensor reading on each bay so every page shows exactly
+// what the UNO Q sensors report. A fault/offline/stale sensor is UNKNOWN,
+// never AVAILABLE. A RESERVED bay stays RESERVED until a car is detected.
+function applyLiveSensors(spaces, sensors) {
+  if (!Array.isArray(spaces) || !Array.isArray(sensors) || sensors.length === 0) {
+    return spaces
+  }
+
+  const byBay = new Map()
+  sensors.forEach(sensor => {
+    const bay = SENSOR_TO_BAY[sensor.sensor_id || sensor.id]
+    if (bay) byBay.set(bay, sensor)
+  })
+
+  return spaces.map(space => {
+    const sensor = byBay.get(space.id)
+
+    // Sensor has never reported: keep the database status.
+    if (!sensor || !sensor.timestamp) return space
+
+    const live = String(sensor.occupancy || '').toUpperCase()
+    const stored = String(space.status || '').toUpperCase()
+    let status
+
+    if (!sensor.is_online) status = 'UNKNOWN'
+    else if (live === 'OCCUPIED') status = 'OCCUPIED'
+    else if (live === 'AVAILABLE') status = stored === 'RESERVED' ? 'RESERVED' : 'AVAILABLE'
+    else status = 'UNKNOWN'
+
+    return { ...space, status, liveStatus: live, sensorStatus: sensor.status }
+  })
+}
+
 function Workspace() {
   const [authenticated, setAuthenticated] = useState(false)
   const [authChecking, setAuthChecking] = useState(true)
   const [currentUser, setCurrentUser] = useState(null)
 
-  const [spaces, setSpaces] = useState([])
+  const [dbSpaces, setSpaces] = useState([])
+  const { sensors: liveSensors } = useSpotSync()
+  const spaces = useMemo(
+    () => applyLiveSensors(dbSpaces, liveSensors),
+    [dbSpaces, liveSensors]
+  )
   const [sessions, setSessions] = useState([])
   const [alerts] = useState([])
 
@@ -202,9 +250,28 @@ function Workspace() {
   useEffect(() => {
     if (!authenticated) return
 
-    loadRealSessions().catch(error => {
-      console.error('Unable to refresh parking data:', error)
-    })
+    let active = true
+    let busy = false
+
+    const refresh = async () => {
+      if (!active || busy) return
+      busy = true
+      try {
+        await loadRealSessions()
+      } catch (error) {
+        console.error('Unable to refresh parking data:', error)
+      } finally {
+        busy = false
+      }
+    }
+
+    refresh()
+    const timer = window.setInterval(refresh, 3000)
+
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
   }, [authenticated, loadRealSessions])
 
   function handleLogin(user) {
@@ -234,17 +301,9 @@ function Workspace() {
     await loadRealSessions()
   }
 
-  if (navigationMatch) {
-    return <PublicNavigation />
-  }
-
-  if (driverMatch) {
-    return (
-      <Navigate
-        to={path.replace(/^\/driver\//, '/navigate/')}
-        replace
-      />
-    )
+  if (navigationMatch || driverMatch) {
+    const token = decodeURIComponent((navigationMatch || driverMatch)[1])
+    return <PublicNavigation token={token} />
   }
 
   if (path === '/') return <Landing />

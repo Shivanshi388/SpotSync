@@ -77,11 +77,24 @@ function StaffDashboard({ spaces = [], sessions = [], alerts = [] }) {
     n => !n.read
   ).length
 
+  // Count an unreliable sensor once, rather than counting
+  // both its warning and the UNKNOWN status of its parking bay.
+  const unreliableSensorBayIds = new Set(
+    sensors
+      .filter(s => ['Offline', 'Stale', 'Fault', 'Unknown'].includes(s.status))
+      .map(s => sensorBayMap[s.id])
+      .filter(Boolean)
+  )
+
+  const unmonitoredUnknownSpaces = dashboardSpaces.filter(
+    s =>
+      ['UNKNOWN', 'OUT_OF_SERVICE'].includes(s.status) &&
+      !unreliableSensorBayIds.has(s.id)
+  ).length
+
   const attention =
-    dashboardSpaces.filter(s =>
-      ['UNKNOWN', 'OUT_OF_SERVICE'].includes(s.status)
-    ).length +
     sensorWarnings +
+    unmonitoredUnknownSpaces +
     unresolvedMismatches
 
   const inUse = occupied + reserved

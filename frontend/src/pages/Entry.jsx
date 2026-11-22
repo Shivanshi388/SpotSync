@@ -540,7 +540,7 @@ export default function Entry({ onCreate }) {
 
                   <div style={{ display: 'flex', justifyContent: 'center', padding: '16px', background: '#fff', borderRadius: '12px', margin: '12px 0' }}>
                     <QRCodeSVG
-                      value={`${window.location.origin}/driver/${encodeURIComponent(created.token)}`}
+                      value={`${(import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin).replace(/\/+$/, '')}/driver/${encodeURIComponent(created.token)}`}
                       size={220}
                       level="M"
                       includeMargin
