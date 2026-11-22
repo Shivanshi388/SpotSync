@@ -235,6 +235,10 @@ export const api = {
       }),
   },
 
+  sensors: {
+    latest: () => apiRequest("/sensors/latest"),
+  },
+
   tickets: {
     createForSession: (sessionId) =>
       apiRequest(`/tickets/sessions/${sessionId}`, {

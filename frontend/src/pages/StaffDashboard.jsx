@@ -260,15 +260,35 @@ function StaffDashboard({ spaces = [], sessions = [], alerts = [] }) {
                     s => sensorBayMap[s.id] === space.id
                   )
 
-                  const unreliable =
-                    sensor &&
-                    ['Offline', 'Stale', 'Fault', 'Unknown'].includes(sensor.status)
+                  const isReserved =
+                    String(space.status).toUpperCase() === 'RESERVED'
 
-                  const displayStatus = unreliable
-                    ? 'UNKNOWN'
-                    : space.status
+                  const hasReliableOccupancy =
+                    sensor?.is_online === true &&
+                    ['AVAILABLE', 'OCCUPIED'].includes(sensor.readingStatus)
+
+                  // Preserve reservations; otherwise require a reliable sensor
+                  // before displaying the backend's confirmed bay status.
+                  const displayStatus = isReserved
+                    ? 'RESERVED'
+                    : hasReliableOccupancy
+                      ? space.status
+                      : 'UNKNOWN'
 
                   const cssStatus = displayStatus.toLowerCase()
+
+                  const distanceDisplay =
+                    sensor?.distance_cm == null
+                      ? 'No distance reading'
+                      : Number.isFinite(Number(sensor.distance_cm))
+                        ? Number(sensor.distance_cm) < 0
+                          ? `NO ECHO (${sensor.distance_cm} cm)`
+                          : `${Number(sensor.distance_cm).toFixed(2)} cm`
+                        : String(sensor.distance_cm)
+
+                  const sensorDisplay = sensor
+                    ? `${sensor.status} · Event: ${sensor.readingStatus}`
+                    : 'Unknown · No reading'
 
                   return (
                     <button
@@ -282,6 +302,14 @@ function StaffDashboard({ spaces = [], sessions = [], alerts = [] }) {
                       <span>
                         {statusLabels[displayStatus] || displayStatus}
                       </span>
+
+                      <small className="dashboard-bay-reading">
+                        Distance: {distanceDisplay}
+                      </small>
+
+                      <small className="dashboard-bay-sensor">
+                        {sensorDisplay}
+                      </small>
 
                       {displayStatus === 'OCCUPIED' && (
                         <CarFront size={19} />

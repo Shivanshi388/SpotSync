@@ -549,3 +549,22 @@
     gap: 10px;
   }
 }
+/* Live physical sensor readings inside each parking bay card */
+.dashboard-bay .dashboard-bay-reading,
+.dashboard-bay .dashboard-bay-sensor {
+  position: static;
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 9px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.dashboard-bay .dashboard-bay-reading {
+  color: #514965;
+}
+
+.dashboard-bay .dashboard-bay-sensor {
+  color: #716980;
+}
