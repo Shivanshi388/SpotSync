@@ -11,7 +11,10 @@ def disable_incident_calls(monkeypatch):
         "app.services.sensor_service.incident_service.detect_sensor_incident",
         lambda **kwargs: None,
     )
-
+    monkeypatch.setattr(
+        "app.services.sensor_service.incident_service.auto_resolve_sensor_incidents",
+        lambda db, sensor_id: 0,
+    )
 
 def test_stale_sensor_marks_assigned_slot_unknown(monkeypatch):
     disable_incident_calls(monkeypatch)
@@ -112,7 +115,7 @@ def test_direct_offline_event_preserves_protected_status(
     assert slot.status == status
 
 
-def test_stable_vacancy_completes_active_session(monkeypatch):
+def test_stable_vacancy_preserves_active_session(monkeypatch):
     disable_incident_calls(monkeypatch)
 
     sensor = SimpleNamespace(
@@ -144,10 +147,10 @@ def test_stable_vacancy_completes_active_session(monkeypatch):
         event_type="available",
     )
 
-    assert session.status == "COMPLETED"
-    assert session.ended_at is not None
-    assert slot.status == "AVAILABLE"
-    assert slot.is_available is True
+    assert session.status == "ACTIVE"
+    assert session.ended_at is None
+    assert slot.status == "OCCUPIED"
+    assert slot.is_available is False
     db.commit.assert_called_once()
 
 

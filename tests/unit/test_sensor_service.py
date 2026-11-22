@@ -17,7 +17,13 @@ def setup_db(readings, current_status="UNKNOWN"):
     slot.is_available = False
 
     db.get.side_effect = [sensor, slot]
-    db.scalars.return_value.all.return_value = readings
+    incident_result = MagicMock()
+    incident_result.all.return_value = []
+    reading_result = MagicMock()
+    reading_result.all.return_value = readings
+    session_result = MagicMock()
+    session_result.first.return_value = None
+    db.scalars.side_effect = [incident_result, reading_result, session_result]
 
     return db, sensor, slot
 
