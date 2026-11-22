@@ -3,6 +3,26 @@ import { Html5QrcodeScanner } from 'html5-qrcode'
 import { PageTitle, Card, Button } from '../components/Shared'
 import { api } from '../services/api'
 
+function extractTicketToken(decodedText) {
+  const value = String(decodedText || '').trim()
+
+  try {
+    const url = new URL(value, window.location.origin)
+    const segments = url.pathname.split('/').filter(Boolean)
+
+    const routeIndex = segments.findIndex(segment =>
+      ['driver', 'navigate'].includes(segment.toLowerCase())
+    )
+
+    if (routeIndex !== -1 && segments[routeIndex + 1]) {
+      return decodeURIComponent(segments[routeIndex + 1])
+    }
+  } catch {
+    // QR may contain a raw token.
+  }
+
+  return value
+}
 export default function TicketScanner() {
   const scannerRef = useRef(null)
   const processingRef = useRef(false)
@@ -38,7 +58,13 @@ export default function TicketScanner() {
         setMessage('QR detected. Validating ticket and completing exit...')
 
         try {
-          const response = await api.tickets.exitWithTicket(decodedText)
+          const ticketToken = extractTicketToken(decodedText)
+
+          if (!ticketToken) {
+            throw new Error('QR code does not contain a valid parking ticket token.')
+          }
+
+          const response = await api.tickets.exitWithTicket(ticketToken)
           setResult(response)
           setMessage(response.message || 'Vehicle exit completed successfully.')
 

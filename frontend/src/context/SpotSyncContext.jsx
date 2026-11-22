@@ -50,7 +50,7 @@ function mapSensor(reading, sensorId) {
   const ageMs = timestamp ? Date.now() - new Date(timestamp).getTime() : Infinity
 
   const isFresh =
-    Number.isFinite(ageMs) && ageMs >= -30000 && ageMs <= 120000
+    Number.isFinite(ageMs) && ageMs >= -300000 && ageMs <= 120000
 
   const isOnline = reading.is_online !== false && isFresh
 
@@ -130,7 +130,11 @@ export function SpotSyncProvider({ children }) {
     let busy = false
 
     const load = async () => {
-      if (busy || !localStorage.getItem('spotsync_access_token')) return
+      if (busy) return
+      if (!localStorage.getItem('spotsync_access_token')) {
+        if (active) setLiveError('Session expired. Please log in again.')
+        return
+      }
 
       busy = true
 
@@ -154,7 +158,7 @@ export function SpotSyncProvider({ children }) {
             : (sensorData?.readings || [])
 
           const byId = new Map(
-            readings.map(reading => [reading.sensor_id, reading])
+            readings.map(reading => [String(reading.sensor_id || '').trim().toUpperCase(), reading])
           )
 
           setSensors(

@@ -56,6 +56,11 @@ class SensorService:
         if sensor.parking_slot_id is not None:
             slot = db.get(ParkingSlot, sensor.parking_slot_id)
 
+        # A good reading means the sensor has recovered: close its open
+        # fault/offline incidents (committed with the rest of this event).
+        if event_type in {"occupied", "available"}:
+            incident_service.auto_resolve_sensor_incidents(db, sensor_id)
+
         # Fault/offline/blocked readings immediately make the bay non-available.
         # A sensor fault is not an occupancy reading and must never free a bay.
         if is_offline_event or event_type in {"fault", "blocked", "unexpected_occupancy"}:
@@ -85,16 +90,16 @@ class SensorService:
                     slot.is_available = False
 
                 elif slot.status != "RESERVED":
-                    # A stable vacancy reading confirms the vehicle has left.
+                    # Sensor readings must never complete an active session.
                     active_session = get_active_session_for_slot_for_update(
                         db, slot.id
                     )
-                    if active_session is not None:
-                        active_session.status = "COMPLETED"
-                        active_session.ended_at = now
-
-                    slot.status = "AVAILABLE"
-                    slot.is_available = True
+                    if active_session is None:
+                        slot.status = "AVAILABLE"
+                        slot.is_available = True
+                    else:
+                        slot.status = "OCCUPIED"
+                        slot.is_available = False
 
         if sensor.parking_lot_id is not None:
             incident_service.detect_sensor_incident(

@@ -1,8 +1,13 @@
+from dotenv import load_dotenv
+from pathlib import Path
+
+load_dotenv(Path(__file__).resolve().parent / 'backend' / '.env')
 
 import ssl
 import os
 import re
 import json
+import math
 import time
 import serial
 import paho.mqtt.client as mqtt
@@ -13,7 +18,7 @@ from datetime import datetime, timezone
 # ARDUINO CONFIGURATION
 # ==========================================
 
-SERIAL_PORT = "COM4"
+SERIAL_PORT = "COM6"
 BAUD_RATE = 9600
 
 
@@ -55,15 +60,12 @@ last_status_by_sensor = {}
 # MQTT CONFIGURATION - EMQX CLOUD
 # ==========================================
 
-BROKER = os.getenv(
-    "SPOTSYNC_MQTT_BROKER",
-    "df78515f.ala.asia-southeast1.emqxsl.com"
-)
+BROKER = os.getenv("SPOTSYNC_MQTT_BROKER") or os.getenv("MQTT_BROKER", "df78515f.ala.asia-southeast1.emqxsl.com")
 
-PORT = int(os.getenv("SPOTSYNC_MQTT_PORT", "8883"))
+PORT = int(os.getenv("SPOTSYNC_MQTT_PORT") or os.getenv("MQTT_PORT", "8883"))
 
-MQTT_USERNAME = os.getenv("SPOTSYNC_MQTT_USERNAME")
-MQTT_PASSWORD = os.getenv("SPOTSYNC_MQTT_PASSWORD")
+MQTT_USERNAME = os.getenv("SPOTSYNC_MQTT_USERNAME") or os.getenv("MQTT_USERNAME")
+MQTT_PASSWORD = os.getenv("SPOTSYNC_MQTT_PASSWORD") or os.getenv("MQTT_PASSWORD")
 
 if not MQTT_USERNAME or not MQTT_PASSWORD:
     raise RuntimeError("MQTT username or password is missing.")
@@ -158,52 +160,23 @@ try:
 
             distance = float(reading)
 
-            previous_status = last_status_by_sensor.get(
-                sensor_id
-            )
-
-            thresholds = SENSOR_THRESHOLDS[sensor_id]
-
-
-            # Clearly occupied.
-            if distance <= thresholds["occupied"]:
-
-                status = "occupied"
-
-
-            # Clearly available.
-            elif distance >= thresholds["available"]:
-
-                status = "available"
-
-
-            # Between thresholds: preserve previous state.
-            elif previous_status is not None:
-
-                status = previous_status
-
-
-            # Initial reading: use midpoint.
+            if not math.isfinite(distance) or distance <= 0 or distance > 400:
+                status = "fault"
+                distance = -1.0
+                last_status_by_sensor.pop(sensor_id, None)
             else:
-
-                midpoint = (
-                    thresholds["occupied"]
-                    + thresholds["available"]
-                ) / 2
-
-                status = (
-                    "occupied"
-                    if distance < midpoint
-                    else "available"
-                )
-
-
-            last_status_by_sensor[sensor_id] = status
-
-
-        # ==================================
-        # CREATE MQTT PAYLOAD
-        # ==================================
+                previous_status = last_status_by_sensor.get(sensor_id)
+                thresholds = SENSOR_THRESHOLDS[sensor_id]
+                if distance <= thresholds["occupied"]:
+                    status = "occupied"
+                elif distance >= thresholds["available"]:
+                    status = "available"
+                elif previous_status is not None:
+                    status = previous_status
+                else:
+                    midpoint = (thresholds["occupied"] + thresholds["available"]) / 2
+                    status = "occupied" if distance < midpoint else "available"
+                last_status_by_sensor[sensor_id] = status
 
         payload = {
             "sensor_id": sensor_id,

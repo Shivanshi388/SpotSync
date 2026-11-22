@@ -130,6 +130,10 @@ def start_parking_session(
             user_id=user_id,
             vehicle_id=vehicle_id,
         )
+
+        # Keep an active session's slot unavailable.
+        slot.status = "OCCUPIED"
+        slot.is_available = False
         db.commit()
         db.refresh(session)
 

@@ -37,6 +37,11 @@ app.add_middleware(
         "http://localhost:5174",
         "http://127.0.0.1:5174",
     ],
+    allow_origin_regex=(
+        r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+"
+        r"|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|[a-z0-9-]+\.ngrok-free\.app"
+        r"|[a-z0-9-]+\.trycloudflare\.com|[a-z0-9-]+\.vercel\.app)(:\d+)?"
+    ),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -67,7 +72,9 @@ def root():
 def start_optional_mqtt():
     start_sensor_health_monitor()
     initialize_neo4j()
-    if settings.mqtt_enabled:
+    # Start the MQTT subscriber whenever broker credentials exist, so a
+    # missing MQTT_ENABLED flag can no longer silently disable live sensors.
+    if settings.mqtt_enabled or settings.mqtt_username:
         start_mqtt_subscriber()
 
 

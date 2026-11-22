@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 60
+    jwt_access_token_expire_minutes: int = 720
     booking_checkout_expiry_minutes: int = 15
 
     razorpay_key_id: str = ""
@@ -29,15 +29,20 @@ class Settings(BaseSettings):
     app_env: str = "production"
     allow_mock_payments: bool = False
     mqtt_enabled: bool = False
-    mqtt_broker: str = "localhost"
-    mqtt_port: int = 1883
+    mqtt_broker: str = "df78515f.ala.asia-southeast1.emqxsl.com"
+    mqtt_port: int = 8883
     mqtt_client_id: str = "spotsync-backend"
     mqtt_username: str = ""
     mqtt_password: str = ""
-    mqtt_tls_enabled: bool = False
+
+    # Additional credentials used by the Arduino MQTT bridge
+    spotsync_mqtt_username: str = ""
+    spotsync_mqtt_password: str = ""
+
+    mqtt_tls_enabled: bool = True
     sensor_ingestion_token: str = ""
     sensor_stale_after_seconds: int = 120
-    sensor_max_future_skew_seconds: int = 30
+    sensor_max_future_skew_seconds: int = 300
     sensor_health_check_interval_seconds: int = 30
 
     model_config = SettingsConfigDict(

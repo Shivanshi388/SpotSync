@@ -173,3 +173,36 @@ def test_ticket_validation_rejects_inactive_session(monkeypatch):
 
     assert exc.value.status_code == 409
     db.commit.assert_not_called()
+
+def test_exit_ticket_completes_active_session_once(monkeypatch):
+    raw_token = "sample-secure-ticket-token-123456"
+    token = SimpleNamespace(
+        parking_session_id=10,
+        revoked_at=None,
+        used_at=None,
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
+    )
+    session = SimpleNamespace(
+        id=10,
+        status="ACTIVE",
+        parking_lot_id=20,
+        parking_slot_id=30,
+        vehicle_id=40,
+        ended_at=None,
+    )
+    db = MagicMock()
+    db.query.return_value.filter.return_value.with_for_update.return_value.first.return_value = session
+
+    monkeypatch.setattr(
+        ticket_service,
+        "get_token_for_update",
+        lambda *args: token,
+    )
+
+    result = ticket_service.exit_session_with_ticket(db, raw_token)
+
+    assert result["success"] is True
+    assert result["status"] == "COMPLETED"
+    assert token.used_at is not None
+    assert session.ended_at is not None
+    db.commit.assert_called_once()

@@ -50,7 +50,10 @@ def process_sensor_payload(db: Session, data: dict):
     if age_seconds > settings.sensor_stale_after_seconds:
         return None
 
-    if age_seconds < -settings.sensor_max_future_skew_seconds:
+    # Some ESP/PC clocks can run slightly ahead. Keep a bounded tolerance;
+    # event.created_at and last_seen_at are stamped by the backend on receipt.
+    future_skew_limit = max(settings.sensor_max_future_skew_seconds, 300)
+    if age_seconds < -future_skew_limit:
         return None
 
     sensor_code = sensor_payload.sensor_id.strip()

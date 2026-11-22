@@ -4,6 +4,7 @@ from app.repositories.incident_repository import (
     create_incident,
     get_open_incidents,
     resolve_incident,
+    auto_resolve_sensor_incidents,
 )
 
 
@@ -51,6 +52,9 @@ class IncidentService:
             description=description,
             sensor_id=sensor_id,
         )
+
+    def auto_resolve_sensor_incidents(self, db: Session, sensor_id: int):
+        return auto_resolve_sensor_incidents(db, sensor_id)
 
     def get_open(
         self,

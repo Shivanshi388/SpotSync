@@ -11,12 +11,15 @@ const dateText = value => value && !Number.isNaN(new Date(value).getTime()) ? ne
 
 export default function Sensors() {
   const { sensors, lastSync, liveError } = useSpotSync()
-  const ordered = [...sensors].sort((a,b) => BAY_ORDER.indexOf(a.space)-BAY_ORDER.indexOf(b.space))
+  const entranceSensor = sensors.find(sensor => sensor.sensor_id === 'SENSOR_008')
+  const ordered = sensors
+    .filter(sensor => sensor.sensor_id !== 'SENSOR_008')
+    .sort((a,b) => BAY_ORDER.indexOf(a.space)-BAY_ORDER.indexOf(b.space))
   const online = ordered.filter(s => s.is_online).length
   const faults = ordered.filter(s => ['FAULT','UNKNOWN','OUT_OF_SERVICE'].includes(s.occupancy)).length
   return <main style={{padding:24,maxWidth:1200,margin:'0 auto',color:'#25163d'}}>
     <header style={{display:'flex',justifyContent:'space-between',gap:16,flexWrap:'wrap',marginBottom:22}}>
-      <div><div style={{color:'#7042ad',fontSize:11,fontWeight:800,letterSpacing:1.2}}>SPOTSYNC · LIVE IOT MONITOR</div><h1 style={{margin:'7px 0'}}>Sensor Monitoring</h1><p style={{margin:0,color:'#746b80'}}>Actual readings from the authenticated sensor API. Auto-refreshes every 3 seconds.</p></div>
+      <div><div style={{color:'#7042ad',fontSize:11,fontWeight:800,letterSpacing:1.2}}>SPOTSYNC Â· LIVE IOT MONITOR</div><h1 style={{margin:'7px 0'}}>Sensor Monitoring</h1><p style={{margin:0,color:'#746b80'}}>Actual readings from the authenticated sensor API. Auto-refreshes every 3 seconds.</p></div>
       <div style={{fontSize:12,color:liveError?'#b42318':'#16804e'}}> {liveError || `Last sync: ${lastSync ? lastSync.toLocaleTimeString() : 'Waiting...'}`} </div>
     </header>
     <section style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12,marginBottom:20}}>
@@ -26,17 +29,17 @@ export default function Sensors() {
       {ordered.map(sensor=>{const status=String(sensor.occupancy||'UNKNOWN').toUpperCase();const [bg,fg]=color(status);return <article key={sensor.sensor_id} style={{background:'#fff',border:'1px solid #e9e2f0',borderRadius:14,padding:17}}>
         <div style={{display:'flex',justifyContent:'space-between',gap:8}}><strong>{sensor.sensor_id}</strong><span style={{background:bg,color:fg,padding:'5px 9px',borderRadius:20,fontSize:11,fontWeight:800}}>{status}</span></div>
         <h2 style={{fontSize:24,margin:'16px 0 4px'}}>{sensor.space}</h2>
-        <div style={{fontSize:12,color:'#746b80'}}>{sensor.location} · {sensor.is_online?'Online':'Offline / stale'}</div>
+        <div style={{fontSize:12,color:'#746b80'}}>{sensor.location} Â· {sensor.is_online?'Online':'Offline / stale'}</div>
         <div style={{marginTop:14,borderTop:'1px solid #f0ebf4',paddingTop:12,lineHeight:1.8,fontSize:13}}>
-          <div>Distance: <strong>{sensor.distance_cm == null ? '—' : `${sensor.distance_cm} cm`}</strong></div>
+          <div>Distance: <strong>{sensor.distance_cm == null ? 'â€”' : `${sensor.distance_cm} cm`}</strong></div>
           <div>Last reading: <strong>{dateText(sensor.timestamp)}</strong></div>
-          <div>Database slot ID: <strong>{sensor.slotId ?? '—'}</strong></div>
+          <div>Database slot ID: <strong>{sensor.slotId ?? 'â€”'}</strong></div>
         </div>
       </article>})}
     </section>
     {entranceSensor && <section style={{marginTop:16,background:'#fff',border:'1px solid #e9e2f0',borderRadius:14,padding:17}}>
       <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}>
-        <div><div style={{fontSize:11,color:'#7042ad',fontWeight:800}}>ENTRANCE / RAMP SENSOR</div><h2 style={{fontSize:20,margin:'6px 0'}}>{entranceSensor.sensor_id}</h2><div style={{fontSize:12,color:'#746b80'}}>Entrance / Exit · {entranceSensor.status}</div></div>
+        <div><div style={{fontSize:11,color:'#7042ad',fontWeight:800}}>ENTRANCE / RAMP SENSOR</div><h2 style={{fontSize:20,margin:'6px 0'}}>{entranceSensor.sensor_id}</h2><div style={{fontSize:12,color:'#746b80'}}>Entrance / Exit Â· {entranceSensor.status}</div></div>
         <strong>{entranceSensor.occupancy}</strong>
       </div>
       <div style={{fontSize:13,marginTop:10}}>Last event: <strong>{dateText(entranceSensor.timestamp)}</strong></div>

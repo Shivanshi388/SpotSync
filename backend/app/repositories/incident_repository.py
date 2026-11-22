@@ -38,6 +38,26 @@ def create_incident(
     return incident
 
 
+def auto_resolve_sensor_incidents(
+    db: Session,
+    sensor_id: int,
+    incident_types=("sensor_fault", "sensor_failure"),
+):
+    """Close open fault/offline incidents for a sensor that is reporting again."""
+    open_incidents = db.scalars(
+        select(Incident).where(
+            Incident.sensor_id == sensor_id,
+            Incident.status == "open",
+            Incident.incident_type.in_(incident_types),
+        )
+    ).all()
+
+    for incident in open_incidents:
+        incident.status = "resolved"
+
+    return len(open_incidents)
+
+
 def get_open_incidents(
     db: Session,
     parking_lot_id: int | None = None,

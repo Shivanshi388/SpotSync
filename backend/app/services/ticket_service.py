@@ -13,7 +13,7 @@ from app.repositories.ticket_repository import (
 )
 
 
-TOKEN_EXPIRY_MINUTES = 5
+TOKEN_EXPIRY_MINUTES = 720
 
 
 def _hash_token(raw_token: str) -> str:
